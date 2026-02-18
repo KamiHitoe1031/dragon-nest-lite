@@ -1,8 +1,9 @@
 # Dragon Nest Lite — 引継ぎ資料
 
 **最終更新**: 2026-02-19
-**最終コミット**: `76fcc09` (Add backup unrigged models for texture restoration)
-**未コミット変更**: あり（9ファイル変更、334行追加）
+**最終コミット**: `dd8a0f7` (Fix critical bugs, add sprite sheet VFX, and add documentation)
+**未コミット変更**: なし（ワーキングツリーはクリーン）
+**リモート同期**: ローカルが1コミット先行（`git push` 未実施）
 
 ---
 
@@ -32,26 +33,29 @@ Three.js + 純粋JavaScript（ES6モジュール）で構築。ビルドツー�
 | Phase 6 | サウンド + エフェクト + ポリッシュ | **完了** |
 | Phase 7 | セーブ + バランス調整 | **基本完了** |
 
-### 未コミットの変更（重要）
+### 最新コミット `dd8a0f7` の内容
 
-以下の修正がワーキングツリーに残っています。コミットしてからデプロイしてください。
+直近のコミットで以下の修正・追加が含まれています（18ファイル変更、+1,187行）:
 
-| ファイル | 変更内容 |
-|---------|---------|
-| `js/main.js` | キャラ切替時の旧メッシュ削除処理を追加 |
-| `js/entities/Player.js` | WASD移動の回転行列の符号を修正 |
-| `js/entities/Fighter.js` | normalAttackをslashArc→punchImpactに変更、デフォルトフォールバック修正 |
-| `js/scenes/DungeonScene.js` | exit()にプレイヤーメッシュ削除を追加 |
-| `js/scenes/TownScene.js` | exit()にプレイヤーメッシュ削除を追加 |
-| `js/systems/AudioManager.js` | ボイスピッチ 1.35→1.55 |
-| `js/systems/EffectManager.js` | スプライトシートシステム追加、punchImpact()追加、5エフェクト変換 |
-| `js/utils/ModelLoader.js` | 環境モデルのmetalness/roughness補正 |
-| `tools/generate_images.py` | --effectsフラグとスプライトシート生成タスク追加 |
+**バグ修正:**
+- `js/main.js` — キャラ切替時の旧メッシュ削除処理を追加
+- `js/entities/Player.js` — WASD移動の回転行列の符号を修正
+- `js/scenes/DungeonScene.js` — exit()にプレイヤーメッシュ削除を追加
+- `js/scenes/TownScene.js` — exit()にプレイヤーメッシュ削除を追加
+- `js/utils/ModelLoader.js` — 環境モデルのmetalness/roughness補正
+- `js/systems/AudioManager.js` — ボイスピッチ 1.35→1.55
 
-**未追跡ファイル（新規）:**
+**VFXオーバーホール:**
+- `js/systems/EffectManager.js` — スプライトシートアニメーションシステム追加、punchImpact()追加、5エフェクト変換
+- `js/entities/Fighter.js` — normalAttackをslashArc→punchImpactに変更
+
+**新規ファイル:**
 - `assets/textures/effects/fx_*_sheet.png` × 6枚（スプライトシート画像）
 - `assets/models/_rigging_log.json`
-- `blog_development_summary.md`
+- `HANDOVER.md`、`blog_development_summary.md`
+
+**ツール:**
+- `tools/generate_images.py` — --effectsフラグとスプライトシート生成タスク追加
 
 ---
 
@@ -386,16 +390,17 @@ ELEVENLABS_API_KEY=el_xxxxxxxx
 16:39  5501932  Add win/lose BGM, register dungeon prop models
 17:14  0f363fc  Fix grey models, effect transparency, voice toggle, camera
 17:14  76fcc09  Add backup unrigged models for texture restoration
----    (未コミット) VFXオーバーホール、バグ修正6件、スプライトシート6枚
+       dd8a0f7  Fix critical bugs, add sprite sheet VFX, and add documentation
 ```
 
 ---
 
 ## 11. 次に作業する人への注意点
 
-1. **未コミット変更を先にコミット・デプロイしてください**（9ファイル変更 + 新規6スプライトシート）
-2. **`.env` はGitに含まれません** — APIキーは別途共有してもらう必要があります
-3. **Three.js CDNに依存** — オフラインでは動きません。ローカルテストにはHTTPサーバーが必要です
-4. **skills.json（1,620行）が最重要データ** — スキルバランス調整はここを変更
-5. **config.js にバランス値が集約** — ATK、DEF、クリティカル率等の全定数
-6. **ModelLoader のキャッシュ** — 同じGLBの2回目以降のロードはクローンで返却。テクスチャが消えたらバックアップ復元ロジックを確認
+1. **リモートへの push が未実施です** — `git push origin master` でリモートを同期してください
+2. **デプロイも未実施** — `bash build.sh && npx wrangler deploy` で最新版を公開してください
+3. **`.env` はGitに含まれません** — APIキーは別途共有してもらう必要があります
+4. **Three.js CDNに依存** — オフラインでは動きません。ローカルテストにはHTTPサーバーが必要です
+5. **skills.json（1,620行）が最重要データ** — スキルバランス調整はここを変更
+6. **config.js にバランス値が集約** — ATK、DEF、クリティカル率等の全定数
+7. **ModelLoader のキャッシュ** — 同じGLBの2回目以降のロードはクローンで返却。テクスチャが消えたらバックアップ復元ロジックを確認
