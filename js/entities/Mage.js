@@ -116,42 +116,19 @@ export class Mage extends Player {
         return Math.max(2.5, 5 - teleLevel * 0.5);
     }
 
-    _fireProjectile(damage, speed, range, color, homing = false) {
-        const dir = this._getAttackDirection();
-        const startPos = this.position.clone();
-        startPos.y += 1;
-
-        const projectile = {
-            position: startPos.clone(),
-            direction: dir.clone(),
-            speed,
-            damage,
-            range,
-            distanceTraveled: 0,
-            homing,
-            color,
-            alive: true
-        };
-
-        // Create visual
-        const geo = new THREE.SphereGeometry(0.15, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.copy(startPos);
-
-        // Glow
-        const glowGeo = new THREE.SphereGeometry(0.25, 8, 8);
-        const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
-        const glow = new THREE.Mesh(glowGeo, glowMat);
-        mesh.add(glow);
-
-        this.game.scene.add(mesh);
-        projectile.mesh = mesh;
-
-        this.game.addProjectile(projectile);
-    }
+    // _fireProjectile is inherited from Player base class
 
     _executeSkill(skillId, skillData, level) {
+        // Dispatch buff/debuff skills to base class handlers
+        if (skillData.type === 'buff') {
+            this._executeBuffSkill(skillId, skillData, level);
+            return;
+        }
+        if (skillData.type === 'debuff') {
+            this._executeDebuffSkill(skillId, skillData, level);
+            return;
+        }
+
         const levelData = skillData.levels[level - 1];
         if (!levelData) return;
 
@@ -159,6 +136,52 @@ export class Mage extends Player {
         const hits = levelData.hits || 1;
         const range = skillData.range || 3;
 
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
+        this._playSkillEffect(skillId, skillData, levelData, range);
+
+        // DOT Zone skills (Poison Missile, Flame Wall, Summon Black Hole)
+        if (levelData.dotDuration) {
+            this._executeDOTZone(damage, range, levelData, skillData);
+            return;
+        }
+
+        // Projectile skills (point AoE or has projectiles field)
+        if (skillData.aoeType === 'point' || levelData.projectiles) {
+            const numProjectiles = levelData.projectiles || 1;
+            const color = skillId.includes('fire') || skillId.includes('flame') ? 0xff4400
+                : skillId.includes('ice') || skillId.includes('frost') || skillId.includes('glacial') ? 0x88ccff
+                : skillId.includes('gravity') || skillId.includes('nine_tail') ? 0x8844ff
+                : 0x44aaff;
+            const isHoming = skillId.includes('nine_tail') || skillId.includes('gravity');
+
+            for (let p = 0; p < numProjectiles; p++) {
+                setTimeout(() => {
+                    this._fireProjectile(damage, 14, range, color, isHoming);
+                }, p * 150);
+            }
+            // Apply status effects to nearby enemies for non-projectile aspects
+            if (levelData.pullRadius) {
+                const pullCenter = this.position.clone().add(this._getAttackDirection().multiplyScalar(range * 0.5));
+                const pullEnemies = this.game.getEnemiesInRange(pullCenter, this._getAttackDirection(), levelData.pullRadius, 'circle', 360);
+                for (const enemy of pullEnemies) {
+                    if (!enemy.isDead) {
+                        const pullDir = pullCenter.clone().sub(enemy.position).normalize();
+                        enemy.applyKnockback(pullDir, 5);
+                    }
+                }
+            }
+            return;
+        }
+
+        // Spin skills: multi-hit circle AoE
+        if (skillData.aoeType === 'circle' && hits >= 3) {
+            this._executeSpinSkill(damage, hits, range, skillData, levelData);
+            const enemies = this.game.getEnemiesInRange(this.position, this._getAttackDirection(), range, 'circle', 360);
+            this._applySkillStatusEffects(enemies, damage, levelData);
+            return;
+        }
+
+        // Standard: damage in area
         const enemies = this.game.getEnemiesInRange(
             this.position,
             this._getAttackDirection(),
@@ -166,12 +189,6 @@ export class Mage extends Player {
             skillData.aoeType || 'circle',
             skillData.aoeAngle || 360
         );
-
-        // SFX from skill data
-        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
-
-        // Visual effects based on skill type
-        this._playSkillEffect(skillId, skillData, levelData, range);
 
         for (const enemy of enemies) {
             for (let h = 0; h < hits; h++) {
@@ -181,21 +198,70 @@ export class Mage extends Player {
                         let dmg = damage * MathUtils.damageVariance();
                         if (isCrit) dmg *= CONFIG.CRITICAL_MULTIPLIER;
                         enemy.takeDamage(Math.floor(dmg), isCrit);
+                        this.game.effects.hitSpark(enemy.position, 0x8844ff);
                     }
                 }, h * 100);
             }
-
-            // Apply debuffs
-            if (levelData.effect === 'burn' && !enemy.isDead) {
-                this.game.combatSystem.applyBurn(enemy, levelData.burnDamage || damage * 0.1, levelData.burnDuration || 3);
-            }
-            if (levelData.effect === 'freeze' && !enemy.isDead) {
-                enemy.applyFreeze(levelData.freezeDuration || 2);
-            }
-            if (levelData.effect === 'slow' && !enemy.isDead) {
-                enemy.applySlow(levelData.slowAmount || 0.3, levelData.slowDuration || 3);
-            }
         }
+
+        // Apply status effects
+        this._applySkillStatusEffects(enemies, damage, levelData);
+    }
+
+    /**
+     * Place persistent damage zone at target location.
+     */
+    _executeDOTZone(damage, range, levelData, skillData) {
+        const dir = this._getAttackDirection();
+        const zonePos = this.position.clone().add(dir.clone().multiplyScalar(range * 0.4));
+        const zoneDuration = (levelData.dotDuration || 3000) / 1000;
+        const tickRate = (levelData.tickRate || 1000) / 1000;
+        const zoneRange = Math.min(range * 0.4, 4);
+
+        const zoneColor = skillData.id ? (
+            skillData.id.includes('poison') ? 0x44aa44
+            : skillData.id.includes('black_hole') ? 0x8844ff
+            : 0xff4400
+        ) : 0xff4400;
+
+        this.game.effects.auraRing(zonePos, zoneColor, zoneRange, zoneDuration);
+
+        let elapsed = 0;
+        let tickTimer = 0;
+        const zoneInterval = setInterval(() => {
+            elapsed += 0.1;
+            tickTimer += 0.1;
+
+            if (elapsed >= zoneDuration) {
+                clearInterval(zoneInterval);
+                return;
+            }
+
+            if (tickTimer >= tickRate) {
+                tickTimer -= tickRate;
+                const enemies = this.game.getEnemiesInRange(
+                    zonePos, dir, zoneRange, 'circle', 360
+                );
+                for (const enemy of enemies) {
+                    if (!enemy.isDead) {
+                        const isCrit = Math.random() < CONFIG.CRITICAL_CHANCE;
+                        let dmg = damage * MathUtils.damageVariance();
+                        if (isCrit) dmg *= CONFIG.CRITICAL_MULTIPLIER;
+                        enemy.takeDamage(Math.floor(dmg), isCrit);
+                    }
+                }
+                // Pull effect for Black Hole
+                if (skillData.id && skillData.id.includes('black_hole')) {
+                    const pullEnemies = this.game.getEnemiesInRange(zonePos, dir, zoneRange * 2, 'circle', 360);
+                    for (const enemy of pullEnemies) {
+                        if (!enemy.isDead) {
+                            const pullDir = zonePos.clone().sub(enemy.position).normalize();
+                            enemy.applyKnockback(pullDir, 3);
+                        }
+                    }
+                }
+            }
+        }, 100);
     }
 
     _playSkillEffect(skillId, skillData, levelData, range) {
@@ -203,21 +269,42 @@ export class Mage extends Player {
         const pos = this.position.clone();
         const dir = this._getAttackDirection();
 
-        if (skillId.includes('fireball') || skillId.includes('fire')) {
-            const targetPos = pos.clone().add(dir.clone().multiplyScalar(range));
-            fx.explosion(targetPos, 0xff4400, range);
-        } else if (skillId.includes('ice') || skillId.includes('frost') || skillId.includes('blizzard')) {
-            fx.iceExplosion(pos.clone().add(dir.clone().multiplyScalar(2)), range);
+        if (skillId.includes('fireball') || skillId.includes('flame_spark')) {
+            const targetPos = pos.clone().add(dir.clone().multiplyScalar(range * 0.6));
+            fx.explosion(targetPos, 0xff4400, range * 0.5);
+        } else if (skillId.includes('inferno') || skillId.includes('flame_wall')) {
+            const targetPos = pos.clone().add(dir.clone().multiplyScalar(range * 0.4));
+            fx.explosion(targetPos, 0xff4400, range * 0.4);
+            fx.auraRing(targetPos, 0xff4400, range * 0.4, 3);
+        } else if (skillId.includes('poison')) {
+            const targetPos = pos.clone().add(dir.clone().multiplyScalar(range * 0.4));
+            fx.explosion(targetPos, 0x44aa44, 3);
+            fx.auraRing(targetPos, 0x44aa44, 3, 3);
+        } else if (skillId.includes('ice') || skillId.includes('frost') || skillId.includes('glacial')) {
+            fx.iceExplosion(pos.clone().add(dir.clone().multiplyScalar(2)), range * 0.5);
+        } else if (skillId.includes('blizzard')) {
+            fx.iceExplosion(pos.clone(), range);
+            this.game.ui.screenShake(8, 500);
         } else if (skillId.includes('gravity') || skillId.includes('black_hole') || skillId.includes('singularity')) {
-            fx.blackHole(pos.clone().add(dir.clone().multiplyScalar(3)), range, 3);
+            fx.blackHole(pos.clone().add(dir.clone().multiplyScalar(3)), range * 0.5, 3);
+            if (skillId.includes('singularity')) this.game.ui.screenShake(10, 600);
+        } else if (skillId.includes('nine_tail')) {
+            fx.explosion(pos.clone().add(dir.clone().multiplyScalar(2)), 0x8844ff, 2);
         } else if (skillId.includes('beam') || skillId.includes('laser') || skillId.includes('linear')) {
             fx.beam(pos, dir, range, 0xff44ff, 0.3);
+        } else if (skillId.includes('phoenix')) {
+            fx.explosion(pos.clone(), 0xff4400, range);
+            fx.groundImpact(pos, 0xff4400, range);
+            this.game.ui.screenShake(10, 600);
+        } else if (skillId.includes('time_break')) {
+            fx.auraRing(pos, 0x88aaff, range, 3);
+            fx.explosion(pos.clone(), 0x88aaff, range);
+            this.game.ui.screenShake(10, 600);
         } else if (skillId.includes('time') || skillId.includes('chrono') || skillId.includes('slow')) {
             fx.auraRing(pos, 0x88aaff, range, 3);
         } else if (skillId.includes('shield') || skillId.includes('barrier') || skillId.includes('ward')) {
             fx.buffAura(this, 0x44aaff, skillData.cooldown / 1000 || 10);
         } else {
-            // Default: explosion at target
             const targetPos = pos.clone().add(dir.clone().multiplyScalar(2));
             fx.explosion(targetPos, 0x8844ff, 2);
         }

@@ -118,6 +118,16 @@ export class Fighter extends Player {
     }
 
     _executeSkill(skillId, skillData, level) {
+        // Dispatch buff/debuff skills to base class handlers
+        if (skillData.type === 'buff') {
+            this._executeBuffSkill(skillId, skillData, level);
+            return;
+        }
+        if (skillData.type === 'debuff') {
+            this._executeDebuffSkill(skillId, skillData, level);
+            return;
+        }
+
         const levelData = skillData.levels[level - 1];
         if (!levelData) return;
 
@@ -125,7 +135,38 @@ export class Fighter extends Player {
         const hits = levelData.hits || 1;
         const range = skillData.range || 3;
 
-        // Find enemies in range
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
+        this._playSkillEffect(skillId, skillData, range);
+
+        // Dash skills: move player forward
+        if (this._isDashSkill(skillId, skillData)) {
+            this._executeDashSkill(damage, hits, range, skillData, levelData);
+            return;
+        }
+
+        // Projectile skills (Moonlight Splitter, etc.)
+        if (skillData.aoeType === 'point' || levelData.projectiles) {
+            const numProjectiles = levelData.projectiles || 1;
+            const color = skillData.damageType === 'magical' ? 0x88ccff : 0xffaa44;
+            for (let p = 0; p < numProjectiles; p++) {
+                setTimeout(() => {
+                    this._fireProjectile(damage, 14, range, color, false);
+                }, p * 150);
+            }
+            return;
+        }
+
+        // Spin skills: multi-tick around player
+        if (skillData.aoeType === 'circle' && hits >= 3) {
+            this._executeSpinSkill(damage, hits, range, skillData, levelData);
+            this._applySkillStatusEffects(
+                this.game.getEnemiesInRange(this.position, this._getAttackDirection(), range, 'circle', 360),
+                damage, levelData
+            );
+            return;
+        }
+
+        // Standard: damage in area
         const enemies = this.game.getEnemiesInRange(
             this.position,
             this._getAttackDirection(),
@@ -133,12 +174,6 @@ export class Fighter extends Player {
             skillData.aoeType || 'circle',
             skillData.aoeAngle || 360
         );
-
-        // SFX from skill data
-        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
-
-        // Visual effects based on skill type
-        this._playSkillEffect(skillId, skillData, range);
 
         for (const enemy of enemies) {
             for (let h = 0; h < hits; h++) {
@@ -154,35 +189,47 @@ export class Fighter extends Player {
             }
         }
 
-        // Apply debuffs if applicable
-        if (levelData.effect === 'stun' && enemies.length > 0) {
-            for (const enemy of enemies) {
-                enemy.applyStun(levelData.stunDuration || 1);
-            }
-        }
+        // Apply status effects
+        this._applySkillStatusEffects(enemies, damage, levelData);
     }
 
     _playSkillEffect(skillId, skillData, range) {
         const fx = this.game.effects;
         const pos = this.position.clone();
-        const dir = this._getAttackDirection();
 
-        if (skillId.includes('rising_slash') || skillId.includes('moonlight')) {
+        if (skillId.includes('rising_slash')) {
             fx.slashArc(pos, this.rotation, 0x88ccff, 1.5);
             fx.groundImpact(pos, 0x88ccff, range);
-        } else if (skillId.includes('eclipse') || skillId.includes('parrying')) {
-            fx.heavySlash(pos, this.rotation, 0xffdd44);
-        } else if (skillId.includes('cyclone') || skillId.includes('spinning')) {
+        } else if (skillId.includes('dash') || skillId.includes('line_drive') || skillId.includes('charge')) {
+            fx.slashArc(pos, this.rotation, 0xffaa44, 2);
+            fx.groundImpact(pos, 0xffaa44, 1.5);
+        } else if (skillId.includes('triple') || skillId.includes('hacking')) {
+            fx.slashArc(pos, this.rotation, 0xffffff, 1.2);
+            fx.slashArc(pos, this.rotation + 0.5, 0xffffff, 1.0);
+            fx.slashArc(pos, this.rotation - 0.5, 0xffffff, 1.0);
+        } else if (skillId.includes('moonlight') || skillId.includes('halfmoon') || skillId.includes('crescent')) {
+            fx.slashArc(pos, this.rotation, 0x88ccff, 1.8);
+            fx.groundImpact(pos, 0x88ccff, range);
+        } else if (skillId.includes('cyclone')) {
             fx.groundImpact(pos, 0xff8844, range);
             fx.slashArc(pos, this.rotation, 0xff4400, 2);
             fx.slashArc(pos, this.rotation + Math.PI, 0xff4400, 2);
-        } else if (skillId.includes('stomp') || skillId.includes('earthquake')) {
+        } else if (skillId.includes('stomp')) {
             fx.groundImpact(pos, 0x886644, range);
-        } else if (skillId.includes('warcry') || skillId.includes('howl') || skillId.includes('battle_cry')) {
-            fx.buffAura(this, 0xff8844, skillData.cooldown / 1000 || 10);
-            fx.auraRing(pos, 0xff8844, range, 2);
+        } else if (skillId.includes('whirlwind') || skillId.includes('circle_swing')) {
+            fx.groundImpact(pos, 0xff8844, range);
+            fx.slashArc(pos, this.rotation, 0xff4400, 2);
+            fx.slashArc(pos, this.rotation + Math.PI * 0.5, 0xff4400, 2);
+        } else if (skillId.includes('demolition')) {
+            fx.groundImpact(pos, 0xff6600, range);
+            fx.explosion(pos.clone(), 0xff6600, range);
+        } else if (skillId.includes('infinity') || skillId.includes('maelstrom') || skillId.includes('great_wave')) {
+            fx.explosion(pos.clone(), 0xffdd44, range);
+            fx.groundImpact(pos, 0xffdd44, range);
+            this.game.ui.screenShake(8, 500);
+        } else if (skillId.includes('howl') || skillId.includes('warcry') || skillId.includes('battle')) {
+            fx.auraRing(pos, 0xff8844, range || 3, 2);
         } else {
-            // Default: slash arc
             fx.slashArc(pos, this.rotation, 0xffaa44, 1.2);
         }
     }

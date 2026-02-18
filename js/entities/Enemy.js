@@ -462,6 +462,10 @@ export class Enemy {
                 if (this.debuffs[i].type === 'slow') {
                     this.slowMultiplier = 1;
                 }
+                if (this.debuffs[i].type === 'atkDebuff') {
+                    // Restore ATK by reversing the debuff
+                    this.atk = Math.floor(this.atk / (1 - this.debuffs[i].value));
+                }
                 this.debuffs.splice(i, 1);
             }
         }

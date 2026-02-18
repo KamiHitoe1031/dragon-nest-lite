@@ -71,6 +71,7 @@ export class Player {
 
         // Buffs
         this.buffs = [];
+        this.shield = null; // { hp, maxHp } for damage absorption (Elemental Shield)
 
         // 3D
         this.mesh = null;
@@ -324,9 +325,15 @@ export class Player {
     }
 
     _handleCooldowns(dt) {
+        // CD reduction from Time Acceleration buff
+        let cdMultiplier = 1;
+        for (const buff of this.buffs) {
+            if (buff.stat === 'cdReduction') cdMultiplier += buff.value;
+        }
+
         for (const skillId in this.skillCooldowns) {
             if (this.skillCooldowns[skillId] > 0) {
-                this.skillCooldowns[skillId] -= dt * 1000;
+                this.skillCooldowns[skillId] -= dt * 1000 * cdMultiplier;
                 if (this.skillCooldowns[skillId] < 0) {
                     this.skillCooldowns[skillId] = 0;
                 }
@@ -336,9 +343,16 @@ export class Player {
 
     _handleBuffs(dt) {
         for (let i = this.buffs.length - 1; i >= 0; i--) {
-            this.buffs[i].duration -= dt;
-            if (this.buffs[i].duration <= 0) {
-                this._removeBuff(this.buffs[i]);
+            const buff = this.buffs[i];
+            buff.duration -= dt;
+
+            // HP regen buff (Fortress)
+            if (buff.stat === 'hpRegen') {
+                this.hp = Math.min(this.maxHP, this.hp + this.maxHP * buff.value * dt);
+            }
+
+            if (buff.duration <= 0) {
+                this._removeBuff(buff);
                 this.buffs.splice(i, 1);
             }
         }
@@ -507,7 +521,19 @@ export class Player {
     takeDamage(amount, attackerPos = null) {
         if (this.isInvincible || this.isDead) return 0;
 
-        const finalDamage = Math.max(1, Math.floor(amount - this.getEffectiveDef() * 0.5));
+        let finalDamage = Math.max(1, Math.floor(amount - this.getEffectiveDef() * 0.5));
+
+        // Shield absorption (Elemental Shield)
+        if (this.shield && this.shield.hp > 0) {
+            if (finalDamage <= this.shield.hp) {
+                this.shield.hp -= finalDamage;
+                return 0;
+            } else {
+                finalDamage -= Math.floor(this.shield.hp);
+                this.shield = null;
+            }
+        }
+
         this.hp -= finalDamage;
         this.game.audio.playSFX('sfx_player_hurt');
 
@@ -544,6 +570,8 @@ export class Player {
         this.isAttacking = false;
         this.isUsingSkill = false;
         this.isDodging = false;
+        this.buffs = [];
+        this.shield = null;
     }
 
     usePotion(type) {
@@ -625,6 +653,249 @@ export class Player {
                 }, h * 100);
             }
         }
+    }
+
+    /**
+     * Execute a self-buff skill. Reads buff properties from levelData.
+     */
+    _executeBuffSkill(skillId, skillData, level) {
+        const levelData = skillData.levels[level - 1];
+        if (!levelData) return;
+
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
+        const duration = (levelData.duration || 10000) / 1000;
+
+        // Iron Skin: DEF buff
+        if (levelData.defBonus) {
+            this.buffs.push({ id: skillId, stat: 'def', value: levelData.defBonus, duration });
+            this.game.effects.buffAura(this, 0x886644, duration);
+        }
+        // Battle Howl: ATK buff
+        if (levelData.atkBuff) {
+            this.buffs.push({ id: skillId, stat: 'atk', value: levelData.atkBuff, duration });
+            this.game.effects.buffAura(this, 0xff8844, duration);
+            this.game.effects.auraRing(this.position, 0xff8844, 3, 2);
+        }
+        // Time Acceleration: CD reduction
+        if (levelData.cdReduction) {
+            this.buffs.push({ id: skillId, stat: 'cdReduction', value: levelData.cdReduction, duration });
+            this.game.effects.buffAura(this, 0x88aaff, duration);
+        }
+        // Elemental Shield: damage absorption
+        if (levelData.shieldMultiplier) {
+            const shieldHP = this.getEffectiveMatk() * levelData.shieldMultiplier;
+            this.shield = { hp: shieldHP, maxHp: shieldHP };
+            this.game.effects.buffAura(this, 0x44aaff, 30);
+        }
+        // Fortress: invincibility + DEF + HP regen
+        if (levelData.invincibleDuration) {
+            const invDur = levelData.invincibleDuration / 1000;
+            this.isInvincible = true;
+            this.invincibleTimer = invDur;
+            if (levelData.defAura) {
+                this.buffs.push({ id: skillId, stat: 'def', value: levelData.defAura, duration: invDur });
+            }
+            if (levelData.hpRegenPerSec) {
+                this.buffs.push({ id: skillId + '_regen', stat: 'hpRegen', value: levelData.hpRegenPerSec, duration: invDur });
+            }
+            this.game.effects.buffAura(this, 0xffdd44, invDur);
+            this.game.effects.auraRing(this.position, 0xffdd44, 5, 2);
+        }
+
+        this.game.ui.showCenterMessage(skillData.nameEN || skillData.name, 1000);
+    }
+
+    /**
+     * Execute a debuff skill targeting enemies in area.
+     */
+    _executeDebuffSkill(skillId, skillData, level) {
+        const levelData = skillData.levels[level - 1];
+        if (!levelData) return;
+
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
+
+        const range = skillData.range || 8;
+        const enemies = this.game.getEnemiesInRange(
+            this.position,
+            this._getAttackDirection(),
+            range,
+            skillData.aoeType || 'circle',
+            skillData.aoeAngle || 360
+        );
+
+        const duration = (levelData.duration || levelData.stopDuration || 5000) / 1000;
+
+        for (const enemy of enemies) {
+            if (enemy.isDead) continue;
+            // Slow Area
+            if (levelData.slowPercent) {
+                enemy.applySlow(levelData.slowPercent, duration);
+            }
+            // Time Stop
+            if (levelData.stopDuration) {
+                enemy.applyStun(levelData.stopDuration / 1000);
+                enemy.applyFreeze(levelData.stopDuration / 1000);
+            }
+            // Taunting Howl: ATK debuff
+            if (levelData.atkDebuff) {
+                enemy.debuffs.push({ type: 'atkDebuff', value: levelData.atkDebuff, duration });
+                enemy.atk = Math.floor(enemy.atk * (1 - levelData.atkDebuff));
+            }
+        }
+
+        // Visual
+        this.game.effects.auraRing(this.position, 0x88aaff, range, Math.min(duration, 3));
+        this.game.ui.showCenterMessage(skillData.nameEN || skillData.name, 1000);
+    }
+
+    /**
+     * Dash skill: move player forward, damage enemies along path.
+     */
+    _executeDashSkill(damage, hits, range, skillData, levelData) {
+        const dir = this._getAttackDirection();
+        const startPos = this.position.clone();
+        const dashDistance = range;
+        const dashDuration = 0.3;
+        let elapsed = 0;
+
+        this.isUsingSkill = true;
+        this.isInvincible = true;
+        this.invincibleTimer = dashDuration;
+        this.activeSkillTimer = dashDuration;
+
+        // Super armor from Howling Charge
+        if (levelData.superArmorDuration) {
+            this.isInvincible = true;
+            this.invincibleTimer = levelData.superArmorDuration / 1000;
+        }
+
+        const hitEnemies = new Set();
+        const dashInterval = setInterval(() => {
+            elapsed += 0.016;
+            const t = Math.min(1, elapsed / dashDuration);
+
+            this.position.copy(startPos).add(dir.clone().multiplyScalar(dashDistance * t));
+
+            const enemies = this.game.getEnemiesInRange(
+                this.position, dir, 2, 'circle', 360
+            );
+            for (const enemy of enemies) {
+                if (!hitEnemies.has(enemy) && !enemy.isDead) {
+                    hitEnemies.add(enemy);
+                    for (let h = 0; h < hits; h++) {
+                        setTimeout(() => {
+                            if (!enemy.isDead) {
+                                const isCrit = Math.random() < CONFIG.CRITICAL_CHANCE;
+                                let dmg = damage * MathUtils.damageVariance();
+                                if (isCrit) dmg *= CONFIG.CRITICAL_MULTIPLIER;
+                                enemy.takeDamage(Math.floor(dmg), isCrit);
+                                this.game.effects.hitSpark(enemy.position, 0xffaa00);
+                            }
+                        }, h * 80);
+                    }
+                    const kb = enemy.position.clone().sub(this.position).normalize();
+                    enemy.applyKnockback(kb, 3);
+                }
+            }
+
+            if (t >= 1) clearInterval(dashInterval);
+        }, 16);
+    }
+
+    _isDashSkill(skillId, skillData) {
+        return skillData.aoeType === 'line' && (
+            skillId.includes('dash') || skillId.includes('charge') || skillId.includes('line_drive')
+        );
+    }
+
+    /**
+     * Spin skill: deal damage in ticks around player.
+     */
+    _executeSpinSkill(damage, hits, range, skillData, levelData) {
+        this.activeSkillTimer = hits * 0.15;
+        for (let h = 0; h < hits; h++) {
+            setTimeout(() => {
+                const enemies = this.game.getEnemiesInRange(
+                    this.position, this._getAttackDirection(), range, 'circle', 360
+                );
+                for (const enemy of enemies) {
+                    if (!enemy.isDead) {
+                        const isCrit = Math.random() < CONFIG.CRITICAL_CHANCE;
+                        let dmg = damage * MathUtils.damageVariance();
+                        if (isCrit) dmg *= CONFIG.CRITICAL_MULTIPLIER;
+                        enemy.takeDamage(Math.floor(dmg), isCrit);
+                        this.game.effects.hitSpark(enemy.position, 0xffaa00);
+                    }
+                }
+                // Spinning visual
+                this.game.effects.slashArc(this.position, this.rotation + h * 0.8, 0xffaa44, 1.5);
+            }, h * 150);
+        }
+    }
+
+    /**
+     * Apply status effects from levelData to hit enemies.
+     */
+    _applySkillStatusEffects(enemies, damage, levelData) {
+        for (const enemy of enemies) {
+            if (enemy.isDead) continue;
+            if (levelData.slowDuration) {
+                enemy.applySlow(0.3, levelData.slowDuration);
+            }
+            if (levelData.freezeDuration && levelData.freezeDuration > 0) {
+                enemy.applyFreeze(levelData.freezeDuration / 1000);
+            }
+            if (levelData.stunDuration) {
+                enemy.applyStun(levelData.stunDuration / 1000);
+            }
+            if (levelData.burnDuration) {
+                this.game.combatSystem.applyBurn(enemy, damage * 0.15, levelData.burnDuration / 1000);
+            }
+            if (levelData.stopDuration) {
+                enemy.applyStun(levelData.stopDuration / 1000);
+                enemy.applyFreeze(levelData.stopDuration / 1000);
+            }
+            if (levelData.pullRadius) {
+                const pullCenter = this.position.clone().add(this._getAttackDirection().multiplyScalar(3));
+                const pullDir = pullCenter.clone().sub(enemy.position).normalize();
+                enemy.applyKnockback(pullDir, 5);
+            }
+        }
+    }
+
+    /**
+     * Fire a projectile. Shared by Mage (spells) and Fighter (magic sword skills).
+     */
+    _fireProjectile(damage, speed, range, color, homing = false) {
+        const dir = this._getAttackDirection();
+        const startPos = this.position.clone();
+        startPos.y += 1;
+
+        const projectile = {
+            position: startPos.clone(),
+            direction: dir.clone(),
+            speed,
+            damage,
+            range,
+            distanceTraveled: 0,
+            homing,
+            color,
+            alive: true
+        };
+
+        const geo = new THREE.SphereGeometry(0.15, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(startPos);
+
+        const glowGeo = new THREE.SphereGeometry(0.25, 8, 8);
+        const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        mesh.add(glow);
+
+        this.game.scene.add(mesh);
+        projectile.mesh = mesh;
+        this.game.addProjectile(projectile);
     }
 
     _calculateSkillDamage(skillData, levelData) {

@@ -267,7 +267,7 @@ export class SkillSystem {
         const isMaxed = currentLevel >= maxLevel;
         const isUltimate = skill.treeSpRequirement !== null && skill.treeSpRequirement !== undefined;
         const isEquipped = player.equippedSkills.includes(skill.id);
-        const isActive = skill.type === 'active';
+        const isEquippable = skill.type === 'active' || skill.type === 'buff' || skill.type === 'debuff';
 
         if (isMaxed) el.classList.add('maxed');
         else if (canLearn) el.classList.add('available');
@@ -275,8 +275,8 @@ export class SkillSystem {
         if (isUltimate) el.classList.add('ultimate');
         if (isEquipped) el.classList.add('equipped');
 
-        // In equip mode, highlight equipable active skills
-        if (this.equipMode && isActive && currentLevel > 0) {
+        // In equip mode, highlight equipable skills
+        if (this.equipMode && isEquippable && currentLevel > 0) {
             el.classList.add('equipable');
         }
 
@@ -290,12 +290,14 @@ export class SkillSystem {
                 <div class="st-skill-name">${skill.name}</div>
                 <div class="st-skill-level">Lv. ${currentLevel} / ${maxLevel}</div>
                 <div class="st-skill-cost">SP: ${skill.spPerLevel}/Lv</div>
-                ${isActive && currentLevel > 0 ? '<div class="st-skill-type-tag">Active</div>' : ''}
+                ${skill.type === 'active' && currentLevel > 0 ? '<div class="st-skill-type-tag">Active</div>' : ''}
+                ${skill.type === 'buff' && currentLevel > 0 ? '<div class="st-skill-type-tag buff">Buff</div>' : ''}
+                ${skill.type === 'debuff' && currentLevel > 0 ? '<div class="st-skill-type-tag debuff">Debuff</div>' : ''}
                 ${skill.type === 'passive' && currentLevel > 0 ? '<div class="st-skill-type-tag passive">Passive</div>' : ''}
             </div>
             <div class="st-skill-buttons">
                 <button class="st-btn-add" ${canLearn && !isMaxed ? '' : 'disabled'}>+</button>
-                ${isActive && currentLevel > 0 && !this.equipMode ? '<button class="st-btn-equip">Equip</button>' : ''}
+                ${isEquippable && currentLevel > 0 && !this.equipMode ? '<button class="st-btn-equip">Equip</button>' : ''}
             </div>
         `;
 
@@ -331,7 +333,7 @@ export class SkillSystem {
         // Click to assign in equip mode
         if (this.equipMode) {
             el.addEventListener('click', () => {
-                if (isActive && currentLevel > 0) {
+                if (isEquippable && currentLevel > 0) {
                     this._assignToSlot(skill, player);
                 }
             });
@@ -446,7 +448,7 @@ export class SkillSystem {
         }
 
         // Equip mode hint
-        if (this.equipMode && skill.type === 'active' && currentLevel > 0) {
+        if (this.equipMode && (skill.type === 'active' || skill.type === 'buff' || skill.type === 'debuff') && currentLevel > 0) {
             html += `<div class="tooltip-equip-hint">Click to equip in Slot ${this.equipSlotIndex + 1}</div>`;
         }
 
