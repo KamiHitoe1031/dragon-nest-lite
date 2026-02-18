@@ -102,11 +102,22 @@ export class ModelLoader {
                 const center = box.getCenter(new THREE.Vector3());
                 gltf.scene.position.set(-center.x, -box.min.y, -center.z);
 
-                // Enable shadows on all meshes
+                // Enable shadows and fix material settings for all meshes
                 gltf.scene.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
+                        // Fix PBR materials from Meshy: reduce metalness to avoid
+                        // dark/grey appearance without environment maps
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        for (const mat of mats) {
+                            if (mat.isMeshStandardMaterial) {
+                                if (mat.metalness > 0.3) mat.metalness = 0.1;
+                                if (mat.roughness < 0.3) mat.roughness = 0.5;
+                                // Ensure texture colorSpace is correct
+                                if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+                            }
+                        }
                     }
                 });
 

@@ -831,6 +831,110 @@ def generate_backgrounds():
 
 
 # ---------------------------------------------------------------------------
+# G. Effect Sprite Sheets (4x4 grid, 16 frames, black background)
+# ---------------------------------------------------------------------------
+
+EFFECTS_DIR = TEXTURES_DIR / "effects"
+
+# Common suffix for all effect sprite sheet prompts
+EFFECT_SHEET_SUFFIX = (
+    ", 4x4 grid sprite sheet, 1024x1024 pixels total, 16 frames arranged "
+    "left-to-right top-to-bottom, each frame 256x256, pure black background, "
+    "game VFX, stylized, vibrant glowing colors, no text, no labels, "
+    "no borders between frames, animation sequence"
+)
+
+EFFECT_SHEET_TASKS = [
+    # (output_filename, description)
+    (
+        "fx_fire_explosion_sheet.png",
+        (
+            "Fire explosion animation sequence: frame 1 small ignition spark, "
+            "frames 2-4 expanding orange-yellow flames growing outward, "
+            "frames 5-10 large roaring fire with bright white-hot center, "
+            "frames 11-14 flames turning to orange smoke and embers, "
+            "frames 15-16 fading smoke wisps dissipating"
+        ),
+    ),
+    (
+        "fx_hit_spark_sheet.png",
+        (
+            "Impact hit spark animation sequence: frame 1 bright white flash point, "
+            "frames 2-5 expanding starburst with golden rays shooting outward, "
+            "frames 6-10 sharp bright spark lines and energy fragments, "
+            "frames 11-14 sparks scattering and fading, "
+            "frames 15-16 dim ember particles disappearing"
+        ),
+    ),
+    (
+        "fx_ice_explosion_sheet.png",
+        (
+            "Ice crystal explosion animation sequence: frame 1 small frost crystal forming, "
+            "frames 2-5 ice crystals growing outward in cyan-blue color, "
+            "frames 6-10 large ice shards and snowflake fragments flying outward, "
+            "frames 11-14 frost particles and ice dust settling, "
+            "frames 15-16 fading ice mist"
+        ),
+    ),
+    (
+        "fx_dark_explosion_sheet.png",
+        (
+            "Dark void explosion animation sequence: frame 1 small purple-black distortion point, "
+            "frames 2-5 swirling dark purple-violet energy expanding, "
+            "frames 6-10 large void tendrils and dark lightning, deep purple and black, "
+            "frames 11-14 dark energy collapsing inward, "
+            "frames 15-16 fading shadow wisps"
+        ),
+    ),
+    (
+        "fx_slash_arc_sheet.png",
+        (
+            "Sword slash energy arc animation sequence: frame 1 thin bright energy line starting, "
+            "frames 2-5 crescent blade arc sweeping with bright white-blue trail, "
+            "frames 6-10 wide glowing slash arc at full extension, "
+            "frames 11-14 energy trail fading and dispersing, "
+            "frames 15-16 dim energy particles vanishing"
+        ),
+    ),
+    (
+        "fx_ground_impact_sheet.png",
+        (
+            "Ground shockwave impact animation sequence: frame 1 bright impact point on ground, "
+            "frames 2-5 expanding circular shockwave ring with dust and debris, "
+            "frames 6-10 wide concentric rings spreading outward with cracks, "
+            "frames 11-14 dust cloud settling and ring fading, "
+            "frames 15-16 settling dust particles disappearing"
+        ),
+    ),
+]
+
+
+def generate_effect_sheets():
+    """Category G: Generate effect sprite sheet images."""
+    print("\n" + "=" * 60)
+    print("  G. Effect Sprite Sheets (4x4 grid, 16 frames)")
+    print("=" * 60)
+
+    EFFECTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    success = 0
+    total = len(EFFECT_SHEET_TASKS)
+
+    for i, (output_file, description) in enumerate(EFFECT_SHEET_TASKS, 1):
+        print(f"\n[{i}/{total}] {output_file}")
+        prompt = description + EFFECT_SHEET_SUFFIX
+        output_path = EFFECTS_DIR / output_file
+        if generate_image_text(prompt, output_path):
+            success += 1
+
+        if i < total:
+            time.sleep(REQUEST_DELAY)
+
+    print(f"\n  Effect sprite sheets done: {success}/{total}")
+    return success
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -845,10 +949,11 @@ def main():
     parser.add_argument("--ui", action="store_true", help="D. UI elements")
     parser.add_argument("--backgrounds", action="store_true", help="E. Backgrounds & textures")
     parser.add_argument("--potions", action="store_true", help="F. Potion icons")
+    parser.add_argument("--effects", action="store_true", help="G. Effect sprite sheets")
     args = parser.parse_args()
 
     # If no flags provided, show help
-    if not any([args.all, args.characters, args.enemies, args.icons, args.ui, args.backgrounds, args.potions]):
+    if not any([args.all, args.characters, args.enemies, args.icons, args.ui, args.backgrounds, args.potions, args.effects]):
         parser.print_help()
         print("\nExample: python generate_images.py --all")
         sys.exit(0)
@@ -897,6 +1002,12 @@ def main():
         count = generate_potions()
         results["Potions"] = (count, len(POTION_ICON_TASKS))
         total_assets += len(POTION_ICON_TASKS)
+        total_success += count
+
+    if run_all or args.effects:
+        count = generate_effect_sheets()
+        results["Effect Sheets"] = (count, len(EFFECT_SHEET_TASKS))
+        total_assets += len(EFFECT_SHEET_TASKS)
         total_success += count
 
     # Summary

@@ -276,6 +276,11 @@ export class TownScene {
         // Remove NPCs
         this.npcs = [];
 
+        // Remove player mesh from scene (will be re-added on next scene enter)
+        if (this.game.player?.mesh) {
+            this.game.scene.remove(this.game.player.mesh);
+        }
+
         // Remove town group
         if (this.townGroup) {
             this.game.scene.remove(this.townGroup);

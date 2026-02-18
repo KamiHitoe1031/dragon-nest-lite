@@ -629,6 +629,11 @@ export class DungeonScene {
         this.doorMesh = null;
         this.chestMesh = null;
 
+        // Remove player mesh from scene (will be re-added on next scene enter)
+        if (this.game.player?.mesh) {
+            this.game.scene.remove(this.game.player.mesh);
+        }
+
         // Stop ambient sounds
         this.game.audio.stopAmbient();
 

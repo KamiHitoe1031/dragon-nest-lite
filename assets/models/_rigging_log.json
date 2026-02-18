@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-02-18 14:34:01",
+  "succeeded": [
+    "fighter",
+    "mage",
+    "enemy_goblin"
+  ],
+  "failed": [
+    "enemy_skeleton",
+    "boss_dragon"
+  ]
+}

@@ -43,9 +43,9 @@ export class Fighter extends Player {
             this.game.effects.hitSpark(enemy.position, 0xffaa44);
         }
 
-        // SFX + Slash arc effect
+        // SFX + Punch impact effect (Impact Punch is a fist attack, not a slash)
         this.game.audio.playSFX(this.comboStep === 1 ? 'sfx_sword_slash_01' : 'sfx_sword_slash_02');
-        this.game.effects.slashArc(this.position, this.rotation, 0xffffff, 0.8 + this.comboStep * 0.2);
+        this.game.effects.punchImpact(this.position, 0xffaa44, 0.8 + this.comboStep * 0.2);
 
         // Reset combo after 2 hits
         if (this.comboStep >= 2) {
@@ -221,8 +221,8 @@ export class Fighter extends Player {
             fx.slashArc(pos, this.rotation, 0xff4400, 2);
             fx.slashArc(pos, this.rotation + Math.PI * 0.5, 0xff4400, 2);
         } else if (skillId.includes('demolition')) {
+            fx.punchImpact(pos, 0xff6600, 2.0);
             fx.groundImpact(pos, 0xff6600, range);
-            fx.explosion(pos.clone(), 0xff6600, range);
         } else if (skillId.includes('infinity') || skillId.includes('maelstrom') || skillId.includes('great_wave')) {
             fx.explosion(pos.clone(), 0xffdd44, range);
             fx.groundImpact(pos, 0xffdd44, range);
@@ -230,7 +230,8 @@ export class Fighter extends Player {
         } else if (skillId.includes('howl') || skillId.includes('warcry') || skillId.includes('battle')) {
             fx.auraRing(pos, 0xff8844, range || 3, 2);
         } else {
-            fx.slashArc(pos, this.rotation, 0xffaa44, 1.2);
+            // Default: punch impact for unmatched melee skills
+            fx.punchImpact(pos, 0xffaa44, 1.2);
         }
     }
 

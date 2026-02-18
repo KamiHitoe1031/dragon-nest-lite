@@ -267,8 +267,8 @@ export class Player {
             const sin = Math.sin(cameraAngle);
             const cos = Math.cos(cameraAngle);
 
-            this.moveDirection.x = input.x * cos + input.z * sin;
-            this.moveDirection.z = -input.x * sin + input.z * cos;
+            this.moveDirection.x = input.x * cos - input.z * sin;
+            this.moveDirection.z = input.x * sin + input.z * cos;
             this.moveDirection.normalize();
 
             // Update position
@@ -354,9 +354,9 @@ export class Player {
             const sin = Math.sin(cameraAngle);
             const cos = Math.cos(cameraAngle);
             this.dodgeDirection.set(
-                input.x * cos + input.z * sin,
+                input.x * cos - input.z * sin,
                 0,
-                -input.x * sin + input.z * cos
+                input.x * sin + input.z * cos
             ).normalize();
         } else {
             this.dodgeDirection.set(

@@ -1,7 +1,7 @@
 // Dragon Nest Lite - Effect Manager (Particles, Skill VFX, Hit Effects)
 import * as THREE from 'three';
 
-// Effect texture paths
+// Static effect texture paths
 const FX_TEXTURES = {
     slash_arc:      'assets/textures/effects/fx_slash_arc.png',
     slash_heavy:    'assets/textures/effects/fx_slash_heavy.png',
@@ -19,6 +19,26 @@ const FX_TEXTURES = {
     ground_impact:  'assets/textures/effects/fx_ground_impact.png',
 };
 
+// Sprite sheet definitions (4x4 grids, 16 frames each, black background)
+const FX_SPRITE_SHEETS = {
+    fire_explosion_sheet:  { path: 'assets/textures/effects/fx_fire_explosion_sheet.png', cols: 4, rows: 4, frames: 16 },
+    hit_spark_sheet:       { path: 'assets/textures/effects/fx_hit_spark_sheet.png', cols: 4, rows: 4, frames: 16 },
+    ice_explosion_sheet:   { path: 'assets/textures/effects/fx_ice_explosion_sheet.png', cols: 4, rows: 4, frames: 16 },
+    dark_explosion_sheet:  { path: 'assets/textures/effects/fx_dark_explosion_sheet.png', cols: 4, rows: 4, frames: 16 },
+    slash_arc_sheet:       { path: 'assets/textures/effects/fx_slash_arc_sheet.png', cols: 4, rows: 4, frames: 16 },
+    ground_impact_sheet:   { path: 'assets/textures/effects/fx_ground_impact_sheet.png', cols: 4, rows: 4, frames: 16 },
+};
+
+// Map static texture keys to their sprite sheet upgrades
+const SHEET_UPGRADES = {
+    fire_explosion: 'fire_explosion_sheet',
+    hit_spark:      'hit_spark_sheet',
+    ice_explosion:  'ice_explosion_sheet',
+    dark_explosion: 'dark_explosion_sheet',
+    slash_arc:      'slash_arc_sheet',
+    ground_impact:  'ground_impact_sheet',
+};
+
 export class EffectManager {
     // Shared texture cache
     static _texCache = new Map();
@@ -31,25 +51,39 @@ export class EffectManager {
     }
 
     /**
-     * Preload all effect textures. Call once at startup.
+     * Preload all effect textures and sprite sheets. Call once at startup.
      */
     static async preloadTextures() {
         const loader = new THREE.TextureLoader();
-        const promises = Object.entries(FX_TEXTURES).map(([key, path]) => {
+
+        // Load static textures
+        const staticPromises = Object.entries(FX_TEXTURES).map(([key, path]) => {
             return new Promise(resolve => {
                 loader.load(path, tex => {
                     tex.colorSpace = THREE.SRGBColorSpace;
                     EffectManager._texCache.set(key, tex);
                     resolve();
-                }, undefined, () => {
-                    // Texture not found - ok, will use geometry fallback
-                    resolve();
-                });
+                }, undefined, () => resolve());
             });
         });
-        await Promise.all(promises);
+
+        // Load sprite sheet textures
+        const sheetPromises = Object.entries(FX_SPRITE_SHEETS).map(([key, def]) => {
+            return new Promise(resolve => {
+                loader.load(def.path, tex => {
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                    tex.minFilter = THREE.LinearFilter;
+                    tex.magFilter = THREE.LinearFilter;
+                    EffectManager._texCache.set(key, tex);
+                    resolve();
+                }, undefined, () => resolve());
+            });
+        });
+
+        await Promise.all([...staticPromises, ...sheetPromises]);
         EffectManager._texLoaded = true;
-        console.log(`[EffectManager] Loaded ${EffectManager._texCache.size}/${Object.keys(FX_TEXTURES).length} effect textures`);
+        const totalDefs = Object.keys(FX_TEXTURES).length + Object.keys(FX_SPRITE_SHEETS).length;
+        console.log(`[EffectManager] Loaded ${EffectManager._texCache.size}/${totalDefs} effect textures`);
     }
 
     /** Get a cached effect texture or null */
@@ -80,6 +114,70 @@ export class EffectManager {
         const sprite = new THREE.Sprite(mat);
         sprite.scale.set(size, size, 1);
         return sprite;
+    }
+
+    /**
+     * Create an animated sprite from a sprite sheet.
+     * Returns { sprite, sheetInfo } or null if sheet not available.
+     */
+    _createAnimatedSprite(sheetKey, size = 2, color = 0xffffff, opacity = 1) {
+        const sheetDef = FX_SPRITE_SHEETS[sheetKey];
+        if (!sheetDef) return null;
+        const baseTex = this._getTex(sheetKey);
+        if (!baseTex) return null;
+
+        // Clone texture so each effect instance has independent UV offsets
+        const tex = baseTex.clone();
+        tex.needsUpdate = true;
+        tex.repeat.set(1 / sheetDef.cols, 1 / sheetDef.rows);
+        tex.offset.set(0, 1 - 1 / sheetDef.rows); // Frame 0 = top-left
+
+        const mat = new THREE.SpriteMaterial({
+            map: tex,
+            color,
+            transparent: true,
+            opacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(size, size, 1);
+
+        const sheetInfo = {
+            texture: tex,
+            cols: sheetDef.cols,
+            rows: sheetDef.rows,
+            frames: sheetDef.frames,
+        };
+        return { sprite, sheetInfo };
+    }
+
+    /**
+     * Update sprite sheet frame based on normalized time (0-1).
+     */
+    _updateSpriteFrame(sheetInfo, normalizedTime) {
+        const { texture, cols, rows, frames } = sheetInfo;
+        const frameIndex = Math.min(Math.floor(normalizedTime * frames), frames - 1);
+        const col = frameIndex % cols;
+        const row = Math.floor(frameIndex / cols);
+        texture.offset.set(col / cols, 1 - (row + 1) / rows);
+    }
+
+    /**
+     * Try to create an animated sprite sheet sprite, falling back to static texture.
+     * Returns { sprite, sheetInfo } (sheetInfo may be null for static).
+     */
+    _createEffectSprite(texKey, size = 2, color = 0xffffff, opacity = 1) {
+        // Try sprite sheet upgrade first
+        const sheetKey = SHEET_UPGRADES[texKey];
+        if (sheetKey) {
+            const result = this._createAnimatedSprite(sheetKey, size, color, opacity);
+            if (result) return result;
+        }
+        // Fallback to static texture
+        const sprite = this._createSprite(texKey, size, color, opacity);
+        if (sprite) return { sprite, sheetInfo: null };
+        return null;
     }
 
     update(dt) {
@@ -142,12 +240,12 @@ export class EffectManager {
     // --- Slash Effects ---
 
     slashArc(position, rotation, color = 0xffffff, scale = 1) {
-        // Try texture sprite first
-        const sprite = this._createSprite('slash_arc', 2.5 * scale, color, 0.9);
-        if (sprite) {
+        // Try animated sprite sheet, then static texture
+        const result = this._createEffectSprite('slash_arc', 2.5 * scale, color, 0.9);
+        if (result) {
+            const { sprite, sheetInfo } = result;
             sprite.position.copy(position);
             sprite.position.y += 1;
-            // Offset in attack direction
             sprite.position.x += Math.sin(rotation) * 1.2;
             sprite.position.z += Math.cos(rotation) * 1.2;
             sprite.material.rotation = -rotation;
@@ -157,6 +255,7 @@ export class EffectManager {
                 mesh: sprite, elapsed: 0, duration: 0.35,
                 update: (dt, e) => {
                     const t = e.elapsed / 0.35;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
                     sprite.scale.setScalar(2.5 * scale * (1 + t * 1.5));
                     sprite.material.opacity = 0.9 * (1 - t);
                 }
@@ -233,8 +332,9 @@ export class EffectManager {
     // --- Impact Effects ---
 
     groundImpact(position, color = 0xffaa44, radius = 1.5) {
-        const impactSprite = this._createSprite('ground_impact', radius * 2, color, 0.7);
-        if (impactSprite) {
+        const result = this._createEffectSprite('ground_impact', radius * 2, color, 0.7);
+        if (result) {
+            const { sprite: impactSprite, sheetInfo } = result;
             impactSprite.position.copy(position);
             impactSprite.position.y = 0.15;
             this.game.scene.add(impactSprite);
@@ -243,6 +343,7 @@ export class EffectManager {
                 mesh: impactSprite, elapsed: 0, duration: 0.5,
                 update: (dt, e) => {
                     const t = e.elapsed / 0.5;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
                     impactSprite.scale.setScalar(radius * 2 * (0.3 + t * 1.2));
                     impactSprite.material.opacity = 0.7 * (1 - t);
                 }
@@ -271,10 +372,62 @@ export class EffectManager {
         });
     }
 
+    punchImpact(position, color = 0xffaa44, scale = 1) {
+        // Radial shockwave burst for fist/punch attacks
+        const result = this._createEffectSprite('hit_spark', 2.5 * scale, color, 0.9);
+        if (result) {
+            const { sprite, sheetInfo } = result;
+            sprite.position.copy(position);
+            sprite.position.y += 1;
+            sprite.material.rotation = Math.random() * Math.PI * 2;
+            this.game.scene.add(sprite);
+
+            this.effects.push({
+                mesh: sprite, elapsed: 0, duration: 0.35,
+                update: (dt, e) => {
+                    const t = e.elapsed / 0.35;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
+                    sprite.scale.setScalar(2.5 * scale * (0.3 + t * 1.5));
+                    sprite.material.opacity = 0.9 * (1 - t * t);
+                }
+            });
+        } else {
+            // Geometry fallback: expanding ring
+            const geo = new THREE.TorusGeometry(0.8 * scale, 0.08 * scale, 8, 16);
+            const mat = new THREE.MeshBasicMaterial({
+                color, transparent: true, opacity: 0.8, side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(position);
+            mesh.position.y += 1;
+            mesh.rotation.x = Math.PI / 2;
+            this.game.scene.add(mesh);
+
+            this.effects.push({
+                mesh, elapsed: 0, duration: 0.35,
+                update: (dt, e) => {
+                    const t = e.elapsed / 0.35;
+                    mesh.scale.setScalar(1 + t * 3);
+                    mat.opacity = 0.8 * (1 - t);
+                }
+            });
+        }
+
+        // Burst particles outward
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            this.spawnParticle(
+                position.clone().add(new THREE.Vector3(0, 1, 0)),
+                new THREE.Vector3(Math.cos(angle) * 3, 0.5 + Math.random(), Math.sin(angle) * 3),
+                color, 0.08, 0.3
+            );
+        }
+    }
+
     hitSpark(position, color = 0xffaa00) {
-        // Textured hit spark billboard
-        const sprite = this._createSprite('hit_spark', 1.5, color, 0.9);
-        if (sprite) {
+        const result = this._createEffectSprite('hit_spark', 1.5, color, 0.9);
+        if (result) {
+            const { sprite, sheetInfo } = result;
             sprite.position.copy(position);
             sprite.position.y += 0.8;
             sprite.material.rotation = Math.random() * Math.PI * 2;
@@ -284,6 +437,7 @@ export class EffectManager {
                 mesh: sprite, elapsed: 0, duration: 0.25,
                 update: (dt, e) => {
                     const t = e.elapsed / 0.25;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
                     sprite.scale.setScalar(1.5 * (0.5 + t * 1.5));
                     sprite.material.opacity = 0.9 * (1 - t);
                 }
@@ -374,9 +528,10 @@ export class EffectManager {
         // Determine if fire or dark explosion based on color
         const isFireColor = (color & 0xff0000) > (color & 0x0000ff);
         const texKey = isFireColor ? 'fire_explosion' : 'dark_explosion';
-        const sprite = this._createSprite(texKey, radius * 2.5, color, 0.9);
+        const result = this._createEffectSprite(texKey, radius * 2.5, color, 0.9);
 
-        if (sprite) {
+        if (result) {
+            const { sprite, sheetInfo } = result;
             sprite.position.copy(position);
             sprite.position.y += 0.5;
             this.game.scene.add(sprite);
@@ -390,9 +545,10 @@ export class EffectManager {
                 _extraLight: light,
                 update: (dt, e) => {
                     const t = e.elapsed / 0.5;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
                     sprite.scale.setScalar(radius * 2.5 * (0.3 + t * 1.2));
                     sprite.material.opacity = 0.9 * (1 - t * t);
-                    sprite.material.rotation += dt * 2;
+                    if (!sheetInfo) sprite.material.rotation += dt * 2;
                     light.intensity = 5 * (1 - t);
                     if (t >= 1) {
                         this.game.scene.remove(light);
@@ -442,9 +598,10 @@ export class EffectManager {
     }
 
     iceExplosion(position, radius = 2) {
-        // Textured ice explosion burst
-        const burstSprite = this._createSprite('ice_explosion', radius * 3, 0xaaddff, 0.85);
-        if (burstSprite) {
+        // Animated ice explosion burst
+        const result = this._createEffectSprite('ice_explosion', radius * 3, 0xaaddff, 0.85);
+        if (result) {
+            const { sprite: burstSprite, sheetInfo } = result;
             burstSprite.position.copy(position);
             burstSprite.position.y += 0.8;
             this.game.scene.add(burstSprite);
@@ -453,9 +610,10 @@ export class EffectManager {
                 mesh: burstSprite, elapsed: 0, duration: 0.6,
                 update: (dt, e) => {
                     const t = e.elapsed / 0.6;
+                    if (sheetInfo) this._updateSpriteFrame(sheetInfo, t);
                     burstSprite.scale.setScalar(radius * 3 * (0.4 + t * 0.8));
                     burstSprite.material.opacity = 0.85 * (1 - t);
-                    burstSprite.material.rotation += dt;
+                    if (!sheetInfo) burstSprite.material.rotation += dt;
                 }
             });
         }

@@ -196,6 +196,10 @@ class Game {
     // --- Player Management ---
 
     async startNewGame(classType) {
+        // Remove old player mesh before creating new player
+        if (this.player?.mesh) {
+            this.scene.remove(this.player.mesh);
+        }
         if (classType === 'warrior') {
             this.player = new Fighter(this);
         } else {
@@ -205,6 +209,10 @@ class Game {
     }
 
     async loadSave(saveData) {
+        // Remove old player mesh before creating new player
+        if (this.player?.mesh) {
+            this.scene.remove(this.player.mesh);
+        }
         if (saveData.selectedClass === 'warrior') {
             this.player = new Fighter(this);
         } else {

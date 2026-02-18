@@ -116,7 +116,7 @@ export class AudioManager {
 
             // Pitch up character voice SFX for feminine sound
             if (AudioManager.VOICE_SFX.includes(name)) {
-                rate *= 1.35;
+                rate *= 1.55;
             }
 
             audio.playbackRate = rate;
