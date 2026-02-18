@@ -53,6 +53,10 @@ export class Enemy {
 
         // Death loot
         this.lootDropped = false;
+
+        // Procedural animation
+        this.walkCycle = Math.random() * Math.PI * 2; // random start phase
+        this.idleCycle = Math.random() * Math.PI * 2;
     }
 
     init() {
@@ -469,14 +473,48 @@ export class Enemy {
     }
 
     _updateMesh() {
-        if (this.mesh && !this.isDead) {
-            this.mesh.position.copy(this.position);
-            this.mesh.rotation.y = this.rotation;
+        if (!this.mesh || this.isDead) return;
 
-            // Make HP bar face camera
-            if (this.hpBarGroup) {
-                this.hpBarGroup.lookAt(this.game.camera.position);
+        this.mesh.position.copy(this.position);
+        this.mesh.rotation.y = this.rotation;
+
+        // Procedural animation based on state
+        const dt = this.game.clock ? this.game.clock.getDelta() : 0.016;
+        if (this.state === 'chase' || this.state === 'attack_ready') {
+            // Walking: bob + lean
+            this.walkCycle += 10 * 0.016; // ~consistent speed
+            this.idleCycle = 0;
+
+            const bobY = Math.abs(Math.sin(this.walkCycle)) * 0.06;
+            this.mesh.position.y = this.position.y + bobY;
+            this.mesh.rotation.x = 0.05;
+
+            const squash = 1 + Math.sin(this.walkCycle * 2) * 0.02;
+            if (!this.isAttacking) {
+                this.mesh.scale.set(squash, 1 / squash, squash);
             }
+        } else if (this.isAttacking) {
+            // Attack animation handled by scale bounce
+            this.mesh.rotation.x = 0;
+        } else if (this.isFrozen) {
+            // Frozen: no animation, slightly blue-tinted handled elsewhere
+            this.mesh.rotation.x = 0;
+        } else {
+            // Idle breathing
+            this.idleCycle += 2.0 * 0.016;
+            this.walkCycle = 0;
+
+            const breathe = Math.sin(this.idleCycle) * 0.015;
+            if (!this.isAttacking) {
+                this.mesh.scale.set(1 - breathe * 0.3, 1 + breathe, 1 - breathe * 0.3);
+            }
+            this.mesh.rotation.x = 0;
+            this.mesh.position.y = this.position.y;
+        }
+
+        // Make HP bar face camera
+        if (this.hpBarGroup) {
+            this.hpBarGroup.lookAt(this.game.camera.position);
         }
     }
 }

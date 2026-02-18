@@ -11,6 +11,10 @@ export const CONFIG = {
     CAMERA_OFFSET: { x: 0, y: 18, z: 14 },
     CAMERA_LOOK_OFFSET: { x: 0, y: 0, z: -2 },
     CAMERA_LERP_SPEED: 0.08,
+    CAMERA_ZOOM_MIN: 0.4,
+    CAMERA_ZOOM_MAX: 2.0,
+    CAMERA_ZOOM_SPEED: 0.001,
+    CAMERA_ZOOM_DEFAULT: 1.0,
 
     // Player
     PLAYER_MOVE_SPEED: 8,

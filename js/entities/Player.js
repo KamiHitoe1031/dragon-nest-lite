@@ -78,6 +78,11 @@ export class Player {
         this.animations = {};
         this.currentAnim = '';
 
+        // Procedural animation state
+        this.walkCycle = 0;
+        this.idleCycle = 0;
+        this.animBaseY = 0; // stored base Y for bobbing
+
         // Shadow
         this.shadow = null;
     }
@@ -288,17 +293,51 @@ export class Player {
     }
 
     _updateMesh(dt) {
-        if (this.mesh) {
-            this.mesh.position.copy(this.position);
-            this.mesh.rotation.y = this.rotation;
+        if (!this.mesh) return;
 
-            // Flash effect during invincibility
-            if (this.isInvincible) {
-                const visible = Math.floor(Date.now() / 100) % 2 === 0;
-                this.mesh.visible = visible;
-            } else {
-                this.mesh.visible = true;
-            }
+        this.mesh.position.copy(this.position);
+        this.mesh.rotation.y = this.rotation;
+
+        // Procedural animation
+        if (this.isDodging) {
+            // Dodge: flatten and spin
+            this.mesh.rotation.x = 0;
+        } else if (this.isAttacking || this.isUsingSkill) {
+            // Attack: handled by subclass scale bounce, reset lean
+            this.mesh.rotation.x = 0;
+            this.walkCycle = 0;
+        } else if (this.isMoving) {
+            // Walking/running animation
+            this.walkCycle += dt * 12;
+            this.idleCycle = 0;
+
+            // Vertical bob
+            const bobY = Math.abs(Math.sin(this.walkCycle)) * 0.08;
+            this.mesh.position.y = this.position.y + bobY;
+
+            // Slight forward lean
+            this.mesh.rotation.x = 0.06;
+
+            // Subtle squash/stretch sync with steps
+            const squash = 1 + Math.sin(this.walkCycle * 2) * 0.02;
+            this.mesh.scale.set(squash, 1 / squash, squash);
+        } else {
+            // Idle breathing
+            this.idleCycle += dt * 2.5;
+            this.walkCycle = 0;
+
+            const breathe = Math.sin(this.idleCycle) * 0.015;
+            this.mesh.scale.set(1 - breathe * 0.5, 1 + breathe, 1 - breathe * 0.5);
+            this.mesh.rotation.x = 0;
+            this.mesh.position.y = this.position.y;
+        }
+
+        // Flash effect during invincibility
+        if (this.isInvincible) {
+            const visible = Math.floor(Date.now() / 100) % 2 === 0;
+            this.mesh.visible = visible;
+        } else {
+            this.mesh.visible = true;
         }
     }
 

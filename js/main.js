@@ -44,6 +44,7 @@ class Game {
 
         // Camera
         this.cameraAngle = 0;
+        this.cameraZoom = CONFIG.CAMERA_ZOOM_DEFAULT;
         this.cameraTargetPos = new THREE.Vector3();
 
         // Projectiles
@@ -231,14 +232,22 @@ class Game {
             this.cameraAngle -= delta.x * 0.003;
         }
 
-        // Calculate camera position
+        // Scroll wheel zoom
+        const scroll = this.input.consumeScrollDelta();
+        if (scroll !== 0) {
+            this.cameraZoom += scroll * CONFIG.CAMERA_ZOOM_SPEED;
+            this.cameraZoom = Math.max(CONFIG.CAMERA_ZOOM_MIN, Math.min(CONFIG.CAMERA_ZOOM_MAX, this.cameraZoom));
+        }
+
+        // Calculate camera position with zoom
         const offset = CONFIG.CAMERA_OFFSET;
+        const zoom = this.cameraZoom;
         const cos = Math.cos(this.cameraAngle);
         const sin = Math.sin(this.cameraAngle);
 
-        const targetX = this.player.position.x + offset.x * cos - offset.z * sin;
-        const targetY = this.player.position.y + offset.y;
-        const targetZ = this.player.position.z + offset.x * sin + offset.z * cos;
+        const targetX = this.player.position.x + (offset.x * cos - offset.z * sin) * zoom;
+        const targetY = this.player.position.y + offset.y * zoom;
+        const targetZ = this.player.position.z + (offset.x * sin + offset.z * cos) * zoom;
 
         this.cameraTargetPos.set(targetX, targetY, targetZ);
 

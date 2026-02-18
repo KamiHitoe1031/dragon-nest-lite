@@ -9,6 +9,7 @@ export class InputManager {
         this.skillSlotPressed = [false, false, false, false];
         this.justPressed = {};
         this.justReleased = {};
+        this.scrollDelta = 0; // accumulated scroll for zoom
 
         this._bindEvents();
     }
@@ -52,6 +53,12 @@ export class InputManager {
         document.addEventListener('pointerlockchange', () => {
             this.isPointerLocked = !!document.pointerLockElement;
         });
+
+        // Scroll wheel for camera zoom
+        window.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this.scrollDelta += e.deltaY;
+        }, { passive: false });
     }
 
     isKeyDown(code) {
@@ -99,6 +106,12 @@ export class InputManager {
         const delta = { x: this.mouseDelta.x, y: this.mouseDelta.y };
         this.mouseDelta.x = 0;
         this.mouseDelta.y = 0;
+        return delta;
+    }
+
+    consumeScrollDelta() {
+        const delta = this.scrollDelta;
+        this.scrollDelta = 0;
         return delta;
     }
 

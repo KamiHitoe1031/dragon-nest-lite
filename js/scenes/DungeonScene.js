@@ -71,22 +71,26 @@ export class DungeonScene {
         // Create dungeon container
         this.dungeonGroup = new THREE.Group();
 
-        // Dungeon lighting
-        const ambient = new THREE.AmbientLight(0x334455, 0.8);
+        // Dungeon lighting - bright enough to see clearly
+        const ambient = new THREE.AmbientLight(0x667788, 2.0);
         this.dungeonGroup.add(ambient);
 
+        // Hemisphere light for natural fill (sky color + ground bounce)
+        const hemiLight = new THREE.HemisphereLight(0x8899aa, 0x443322, 1.0);
+        this.dungeonGroup.add(hemiLight);
+
         const torchColor = this.dungeonData.theme === 'forest_cave' ? 0x88aa66 : 0xffaa44;
-        const pointLight1 = new THREE.PointLight(torchColor, 1.5, 20);
-        pointLight1.position.set(-5, 4, -5);
+        const pointLight1 = new THREE.PointLight(torchColor, 3.0, 35);
+        pointLight1.position.set(-5, 5, -5);
         this.dungeonGroup.add(pointLight1);
 
-        const pointLight2 = new THREE.PointLight(torchColor, 1.5, 20);
-        pointLight2.position.set(5, 4, 5);
+        const pointLight2 = new THREE.PointLight(torchColor, 3.0, 35);
+        pointLight2.position.set(5, 5, 5);
         this.dungeonGroup.add(pointLight2);
 
-        // Player follows a spotlight
-        this.playerLight = new THREE.PointLight(0xffffff, 0.5, 12);
-        this.playerLight.position.set(0, 3, 0);
+        // Player follows a spotlight - bright and wide
+        this.playerLight = new THREE.PointLight(0xffffff, 1.5, 20);
+        this.playerLight.position.set(0, 4, 0);
         this.dungeonGroup.add(this.playerLight);
 
         this.game.scene.add(this.dungeonGroup);
