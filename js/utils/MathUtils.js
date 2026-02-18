@@ -36,12 +36,15 @@ export class MathUtils {
     }
 
     static isInCone(origin, direction, target, angle, range) {
-        const toTarget = new THREE.Vector3().subVectors(target, origin);
+        // Project onto XZ plane to avoid Y-position mismatch
+        const toTarget = new THREE.Vector3(target.x - origin.x, 0, target.z - origin.z);
         const dist = toTarget.length();
         if (dist > range) return false;
+        if (dist < 0.001) return true; // on top of origin
 
         toTarget.normalize();
-        const dot = direction.dot(toTarget);
+        const dirXZ = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+        const dot = dirXZ.dot(toTarget);
         const halfAngle = (angle * Math.PI) / 360;
         return dot >= Math.cos(halfAngle);
     }
@@ -51,11 +54,13 @@ export class MathUtils {
     }
 
     static isInLine(origin, direction, target, range, width = 1) {
-        const toTarget = new THREE.Vector3().subVectors(target, origin);
-        const dot = toTarget.dot(direction);
+        // Project onto XZ plane
+        const toTarget = new THREE.Vector3(target.x - origin.x, 0, target.z - origin.z);
+        const dirXZ = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+        const dot = toTarget.dot(dirXZ);
         if (dot < 0 || dot > range) return false;
 
-        const projected = direction.clone().multiplyScalar(dot);
+        const projected = dirXZ.clone().multiplyScalar(dot);
         const perpDist = toTarget.sub(projected).length();
         return perpDist <= width;
     }

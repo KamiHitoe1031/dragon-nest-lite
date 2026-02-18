@@ -95,7 +95,9 @@ export class Enemy {
                 allBones.push(child);
                 const n = child.name.toLowerCase();
                 if (n.includes('hip') || n === 'root') boneMap.hips = child;
-                else if (n.includes('spine') && !boneMap.spine) boneMap.spine = child;
+                else if (n.includes('spine02') || n.includes('spine2') || n.includes('spine_02')) { if (!boneMap.upperSpine) boneMap.upperSpine = child; }
+                else if (n.includes('spine01') || n.includes('spine1') || n.includes('spine_01')) { if (!boneMap.spine) boneMap.spine = child; }
+                else if (n === 'spine' || (n.includes('spine') && !n.includes('0') && !boneMap.spine)) boneMap.lowerSpine = child;
                 else if ((n.includes('leftupleg') || n.includes('left_thigh') || n.includes('leftupperleg') || (n.includes('left') && n.includes('up') && n.includes('leg'))) && !boneMap.leftUpLeg) boneMap.leftUpLeg = child;
                 else if ((n.includes('leftleg') || n.includes('left_shin') || n.includes('leftlowerleg')) && !n.includes('up') && !boneMap.leftLeg) boneMap.leftLeg = child;
                 else if ((n.includes('rightupleg') || n.includes('right_thigh') || n.includes('rightupperleg') || (n.includes('right') && n.includes('up') && n.includes('leg'))) && !boneMap.rightUpLeg) boneMap.rightUpLeg = child;

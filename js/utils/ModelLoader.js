@@ -1,6 +1,7 @@
 // Dragon Nest Lite - Model Loader (GLB preloading + Placeholder fallback)
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { CONFIG } from '../config.js';
 
 // Model definitions: type -> { path, targetHeight }
@@ -174,7 +175,16 @@ export class ModelLoader {
 
         // Create a wrapper group
         const group = new THREE.Group();
-        const clone = cached.scene.clone();
+
+        // Use SkeletonUtils.clone for models with SkinnedMesh (bones),
+        // otherwise use standard clone
+        let hasSkinned = false;
+        cached.scene.traverse(child => {
+            if (child.isSkinnedMesh) hasSkinned = true;
+        });
+        const clone = hasSkinned
+            ? SkeletonUtils.clone(cached.scene)
+            : cached.scene.clone();
 
         // Deep clone materials to avoid shared state issues
         clone.traverse(child => {

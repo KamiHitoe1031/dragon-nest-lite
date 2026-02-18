@@ -128,10 +128,12 @@ export class Player {
                 allBones.push(child);
                 const n = child.name.toLowerCase();
                 // Map common bone names to our slots
+                // Order matters: check specific names before generic 'spine'
                 if (n.includes('hip') || n === 'root') boneMap.hips = child;
-                else if (n.includes('spine') && !boneMap.spine) boneMap.spine = child;
-                else if (n.includes('spine1') || n.includes('spine2')) boneMap.upperSpine = child;
-                else if (n.includes('head') && !n.includes('end')) boneMap.head = child;
+                else if (n.includes('spine02') || n.includes('spine2') || n.includes('spine_02')) { if (!boneMap.upperSpine) boneMap.upperSpine = child; }
+                else if (n.includes('spine01') || n.includes('spine1') || n.includes('spine_01')) { if (!boneMap.spine) boneMap.spine = child; }
+                else if (n === 'spine' || (n.includes('spine') && !n.includes('0') && !boneMap.spine)) boneMap.lowerSpine = child;
+                else if (n.includes('head') && !n.includes('end') && !n.includes('front')) boneMap.head = child;
 
                 // Left leg
                 else if ((n.includes('leftupleg') || n.includes('left_thigh') || n.includes('lefthip') || n.includes('leftupperleg') || (n.includes('left') && n.includes('up') && n.includes('leg'))) && !boneMap.leftUpLeg) boneMap.leftUpLeg = child;
@@ -412,6 +414,8 @@ export class Player {
             this.walkCycle = 0;
             // Attack pose: arms forward, slight crouch
             rotateBone('spine', -0.1, 0, 0);
+            rotateBone('lowerSpine', -0.05, 0, 0);
+            rotateBone('upperSpine', -0.05, 0, 0);
             rotateBone('leftArm', -0.6, 0, 0);
             rotateBone('rightArm', -0.6, 0, 0);
             rotateBone('leftUpLeg', -0.1, 0, 0);
@@ -454,6 +458,8 @@ export class Player {
 
             // Spine: slight counter-twist
             rotateBone('spine', 0.03, sin * 0.04, 0);
+            rotateBone('lowerSpine', 0.02, sin * 0.02, 0);
+            rotateBone('upperSpine', 0.01, sin * 0.02, 0);
         } else {
             // --- Idle breathing ---
             this.idleCycle += dt * 2.5;
@@ -462,6 +468,7 @@ export class Player {
 
             // Spine: gentle breathing expand
             rotateBone('spine', breath * 0.02, 0, 0);
+            rotateBone('lowerSpine', breath * 0.01, 0, 0);
 
             // Arms: slight resting sway
             rotateBone('leftArm', 0, 0, breath * 0.02);
@@ -571,6 +578,9 @@ export class Player {
         // Check MP
         if (skillData.mpCost && this.mp < skillData.mpCost) return;
 
+        // Auto-face nearest enemy before skill execution
+        this._faceNearestEnemy(skillData.range || 10);
+
         // Use skill
         this.mp -= skillData.mpCost || 0;
         this.skillCooldowns[skillId] = skillData.cooldown;
@@ -631,6 +641,30 @@ export class Player {
             if (sdata && sdata.treeSpRequirement && sid !== usedSkillId && this.getSkillLevel(sid) > 0) {
                 this.skillCooldowns[sid] = sdata.cooldown;
             }
+        }
+    }
+
+    /**
+     * Auto-face the nearest enemy before attacking.
+     * If no enemy in range, face toward mouse ground position (if available)
+     * or keep current rotation.
+     */
+    _faceNearestEnemy(maxRange = 10) {
+        const enemies = this.game.getActiveEnemies ? this.game.getActiveEnemies() : [];
+        let closest = null;
+        let closestDist = Infinity;
+
+        for (const enemy of enemies) {
+            if (enemy.isDead) continue;
+            const dist = MathUtils.distanceXZ(this.position, enemy.position);
+            if (dist < closestDist && dist <= maxRange) {
+                closestDist = dist;
+                closest = enemy;
+            }
+        }
+
+        if (closest) {
+            this.rotation = MathUtils.angleBetweenXZ(this.position, closest.position);
         }
     }
 

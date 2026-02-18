@@ -17,6 +17,7 @@ export class Mage extends Player {
 
     normalAttack() {
         // S1: Magic Missile (homing projectile)
+        this._faceNearestEnemy();
         this.isAttacking = true;
         this.attackTimer = 0.3;
 
@@ -44,6 +45,7 @@ export class Mage extends Player {
 
     heavyAttack() {
         // S2: Void Blast (explosion in front)
+        this._faceNearestEnemy();
         this.isAttacking = true;
         this.attackTimer = 0.5;
 

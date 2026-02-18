@@ -14,6 +14,7 @@ export class Fighter extends Player {
 
     normalAttack() {
         // W1: Impact Punch (left click chain)
+        this._faceNearestEnemy();
         this.isAttacking = true;
         this.comboStep++;
         const baseMultiplier = this.comboStep === 1 ? 1.0 : 1.2;
@@ -62,6 +63,7 @@ export class Fighter extends Player {
 
     heavyAttack() {
         // W2: Heavy Slash (right click)
+        this._faceNearestEnemy();
         this.isAttacking = true;
         this.attackTimer = 0.6;
 

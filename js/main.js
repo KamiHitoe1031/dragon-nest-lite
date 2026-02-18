@@ -109,6 +109,10 @@ class Game {
             if (loadingText) loadingText.textContent = `Loading models... ${loaded}/${total}`;
         });
 
+        // Preload effect textures (non-blocking, missing textures fallback to geometry)
+        if (loadingText) loadingText.textContent = 'Loading effects...';
+        await EffectManager.preloadTextures();
+
         // Hide loading screen
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) loadingScreen.style.display = 'none';
