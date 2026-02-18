@@ -113,7 +113,70 @@ export class Player {
         this.shadow.position.y = 0.01;
         this.mesh.add(this.shadow);
 
+        // Attach programmatic weapon to right hand
+        this._createWeapon();
+
         return this.mesh;
+    }
+
+    /**
+     * Create a simple procedural weapon and attach it to the right forearm/hand bone.
+     */
+    _createWeapon() {
+        const attachBone = this.bones?.rightForeArm || this.bones?.rightArm;
+
+        if (this.classType === 'warrior') {
+            // Great sword
+            const blade = new THREE.Mesh(
+                new THREE.BoxGeometry(0.06, 0.5, 0.02),
+                new THREE.MeshLambertMaterial({ color: 0xccccdd, emissive: 0x222233 })
+            );
+            blade.position.y = -0.35;
+            const guard = new THREE.Mesh(
+                new THREE.BoxGeometry(0.12, 0.02, 0.04),
+                new THREE.MeshLambertMaterial({ color: 0x886633 })
+            );
+            guard.position.y = -0.08;
+            const handle = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6),
+                new THREE.MeshLambertMaterial({ color: 0x553311 })
+            );
+            handle.position.y = -0.02;
+
+            const swordGroup = new THREE.Group();
+            swordGroup.add(blade, guard, handle);
+            swordGroup.name = 'weapon';
+
+            if (attachBone) {
+                attachBone.add(swordGroup);
+            } else {
+                swordGroup.position.set(0.3, 0.3, 0);
+                this.mesh.add(swordGroup);
+            }
+        } else {
+            // Staff
+            const shaft = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.02, 0.7, 6),
+                new THREE.MeshLambertMaterial({ color: 0x663311 })
+            );
+            shaft.position.y = -0.35;
+            const orb = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 6),
+                new THREE.MeshLambertMaterial({ color: 0x4488ff, emissive: 0x2244aa })
+            );
+            orb.position.y = -0.68;
+
+            const staffGroup = new THREE.Group();
+            staffGroup.add(shaft, orb);
+            staffGroup.name = 'weapon';
+
+            if (attachBone) {
+                attachBone.add(staffGroup);
+            } else {
+                staffGroup.position.set(0.3, 0.3, 0);
+                this.mesh.add(staffGroup);
+            }
+        }
     }
 
     /**
@@ -958,6 +1021,13 @@ export class Player {
 
         const currentLevel = this.getSkillLevel(skillId);
         if (currentLevel >= skillData.maxLevel) return false;
+
+        // Specialization lock: non-base skills require matching specialization
+        if (skillData.column !== 'base') {
+            if (!this.specialization) return false;
+            const columnSpec = this.game.getColumnSpecialization(this.classType, skillData.column);
+            if (columnSpec && columnSpec !== this.specialization) return false;
+        }
 
         // Check prerequisites
         if (!this._checkPrerequisite(skillData)) return false;

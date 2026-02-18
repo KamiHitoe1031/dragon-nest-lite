@@ -382,8 +382,12 @@ export class SkillSystem {
         if (player.skillPoints < skill.spPerLevel) return false;
         if (player.getSkillLevel(skill.id) >= skill.maxLevel) return false;
 
-        // Specialization lock
-        if (skill.column !== 'base' && !player.specialization) return false;
+        // Specialization lock: non-base skills require matching specialization
+        if (skill.column !== 'base') {
+            if (!player.specialization) return false;
+            const columnSpec = this.game.getColumnSpecialization(player.classType, skill.column);
+            if (columnSpec && columnSpec !== player.specialization) return false;
+        }
 
         // Prerequisite
         if (skill.prerequisite) {

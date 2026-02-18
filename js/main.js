@@ -417,6 +417,17 @@ class Game {
         return ids;
     }
 
+    getColumnSpecialization(classType, column) {
+        if (column === 'base') return null;
+        const classData = this.skillsData?.[classType];
+        if (!classData) return null;
+        for (const [specKey, specData] of Object.entries(classData)) {
+            if (specKey === 'base' || typeof specData !== 'object') continue;
+            if (column in specData) return specKey;
+        }
+        return null;
+    }
+
     // --- UI Helpers ---
 
     openSkillTree() {

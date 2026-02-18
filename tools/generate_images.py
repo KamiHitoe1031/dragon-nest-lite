@@ -561,6 +561,29 @@ def generate_skill_icons():
 # D. UI Elements
 # ---------------------------------------------------------------------------
 
+POTION_ICON_TASKS = [
+    # (output_filename, prompt)
+    (
+        "icon_potion_hp.png",
+        (
+            "game item icon, red healing potion in glass bottle, heart-shaped label, "
+            "glowing warm red liquid, small bubbles, cork stopper, "
+            "dark background, clean edges, 64x64, vibrant colors, "
+            "no text, centered composition, fantasy RPG style"
+        ),
+    ),
+    (
+        "icon_potion_mp.png",
+        (
+            "game item icon, blue mana potion in glass bottle, star-shaped label, "
+            "glowing cyan blue liquid, small sparkles, cork stopper, "
+            "dark background, clean edges, 64x64, vibrant colors, "
+            "no text, centered composition, fantasy RPG style"
+        ),
+    ),
+]
+
+
 UI_TASKS = [
     # (output_filename, prompt)
     (
@@ -663,6 +686,28 @@ UI_TASKS = [
         ),
     ),
 ]
+
+
+def generate_potions():
+    """Category F: Generate potion icons."""
+    print("\n" + "=" * 60)
+    print("  F. Potion Icons")
+    print("=" * 60)
+
+    success = 0
+    total = len(POTION_ICON_TASKS)
+
+    for i, (output_file, prompt) in enumerate(POTION_ICON_TASKS, 1):
+        print(f"\n[{i}/{total}] {output_file}")
+        output_path = UI_DIR / output_file
+        if generate_image_text(prompt, output_path):
+            success += 1
+
+        if i < total:
+            time.sleep(REQUEST_DELAY)
+
+    print(f"\n  Potion icons done: {success}/{total}")
+    return success
 
 
 def generate_ui():
@@ -799,10 +844,11 @@ def main():
     parser.add_argument("--icons", action="store_true", help="C. Skill icons (56)")
     parser.add_argument("--ui", action="store_true", help="D. UI elements")
     parser.add_argument("--backgrounds", action="store_true", help="E. Backgrounds & textures")
+    parser.add_argument("--potions", action="store_true", help="F. Potion icons")
     args = parser.parse_args()
 
     # If no flags provided, show help
-    if not any([args.all, args.characters, args.enemies, args.icons, args.ui, args.backgrounds]):
+    if not any([args.all, args.characters, args.enemies, args.icons, args.ui, args.backgrounds, args.potions]):
         parser.print_help()
         print("\nExample: python generate_images.py --all")
         sys.exit(0)
@@ -845,6 +891,12 @@ def main():
         count = generate_backgrounds()
         results["Backgrounds"] = (count, len(BACKGROUND_TASKS))
         total_assets += len(BACKGROUND_TASKS)
+        total_success += count
+
+    if run_all or args.potions:
+        count = generate_potions()
+        results["Potions"] = (count, len(POTION_ICON_TASKS))
+        total_assets += len(POTION_ICON_TASKS)
         total_success += count
 
     # Summary

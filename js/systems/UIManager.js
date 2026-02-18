@@ -282,8 +282,13 @@ export class UIManager {
         if (isCritical) el.classList.add('critical');
         if (isHeal) el.classList.add('heal');
         el.textContent = (isHeal ? '+' : '') + Math.floor(damage);
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
+
+        // Clamp to viewport with margin
+        const margin = 60;
+        const clampedX = Math.max(margin, Math.min(window.innerWidth - margin, x));
+        const clampedY = Math.max(margin, Math.min(window.innerHeight - margin, y));
+        el.style.left = `${clampedX}px`;
+        el.style.top = `${clampedY}px`;
         this.elements.damageNumbers.appendChild(el);
 
         setTimeout(() => el.remove(), 1000);

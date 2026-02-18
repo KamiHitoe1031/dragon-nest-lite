@@ -252,31 +252,56 @@ export class Enemy {
 
         const dist = MathUtils.distanceXZ(this.position, player.position);
 
+        // Rage phase: below 30% HP
+        const isRaging = this.hp <= this.maxHP * 0.3;
+        if (isRaging && !this._rageActivated) {
+            this._rageActivated = true;
+            this.game.audio.playSFX('sfx_dragon_roar');
+            this.game.ui.showCenterMessage('Dragon is enraged!', 2000);
+            this.game.ui.screenShake(12, 800);
+            if (this.mesh) {
+                this.mesh.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.emissive = new THREE.Color(0x440000);
+                    }
+                });
+            }
+        }
+
         if (this.isAttacking) {
             this.attackTimer -= dt;
             if (this.attackTimer <= 0) {
                 this.isAttacking = false;
-                this.currentPatternIndex = (this.currentPatternIndex + 1) % this.attackPatterns.length;
             }
             return;
         }
 
         this._faceTarget(player.position);
 
+        // Pick pattern: random instead of sequential cycling
+        if (!this.attackPatterns || this.attackPatterns.length === 0) return;
         const pattern = this.attackPatterns[this.currentPatternIndex];
         if (!pattern) return;
 
+        const cdMultiplier = isRaging ? 0.6 : 1;
         if (dist <= pattern.range && this.currentAttackCooldown <= 0) {
-            this._executeBossAttack(pattern, player);
+            this._executeBossAttack(pattern, player, isRaging);
+            // Pick next pattern randomly (avoid repeating the same one)
+            let next;
+            do {
+                next = Math.floor(Math.random() * this.attackPatterns.length);
+            } while (next === this.currentPatternIndex && this.attackPatterns.length > 1);
+            this.currentPatternIndex = next;
         } else if (dist > pattern.range) {
-            this._moveToward(player.position, dt);
+            const speedMult = isRaging ? 1.4 : 1;
+            this._moveToward(player.position, dt * speedMult);
         }
     }
 
-    _executeBossAttack(pattern, player) {
+    _executeBossAttack(pattern, player, isRaging = false) {
         this.isAttacking = true;
-        this.attackTimer = 1.0;
-        this.currentAttackCooldown = pattern.cooldown;
+        this.attackTimer = isRaging ? 0.7 : 1.0;
+        this.currentAttackCooldown = pattern.cooldown * (isRaging ? 0.6 : 1);
 
         // Boss attack SFX
         const bossSfx = ['sfx_dragon_roar', 'sfx_dragon_breath', 'sfx_dragon_stomp'];
@@ -298,17 +323,22 @@ export class Enemy {
         }
 
         if (hitEnemies) {
-            const damage = pattern.damage * MathUtils.damageVariance();
+            const damageMult = isRaging ? 1.3 : 1;
+            const damage = pattern.damage * damageMult * MathUtils.damageVariance();
             player.takeDamage(damage, this.position);
         }
 
-        // Visual mesh scale for attack
+        // Visual: enraged attacks are bigger
         if (this.mesh) {
-            this.mesh.scale.set(1.2, 0.8, 1.2);
+            const scale = isRaging ? 1.3 : 1.2;
+            this.mesh.scale.set(scale, 2 - scale, scale);
             setTimeout(() => {
                 if (this.mesh) this.mesh.scale.set(1, 1, 1);
             }, 200);
         }
+
+        // Screen shake on boss attacks
+        this.game.ui.screenShake(isRaging ? 8 : 4, 300);
     }
 
     _tryAttack(player) {

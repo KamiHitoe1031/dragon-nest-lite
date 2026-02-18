@@ -240,14 +240,20 @@ export class DungeonScene {
         // Walls with texture
         this._createWalls(roomData.size);
 
-        // Props
+        // Props (with collision data)
+        this.propColliders = [];
         if (roomData.props) {
+            const propRadii = { rock: 1.0, tree: 0.8, pillar: 0.7, barrel: 0.6 };
             for (const prop of roomData.props) {
                 const propType = prop.type || 'rock';
                 const propMesh = ModelLoader.getEnvironmentModel(propType);
                 const p = offsetPos(prop.position);
                 propMesh.position.set(p[0], p[1], p[2]);
                 this.roomGroup.add(propMesh);
+                this.propColliders.push({
+                    x: p[0], z: p[2],
+                    radius: propRadii[propType] || 0.8
+                });
             }
         }
 
@@ -477,6 +483,22 @@ export class DungeonScene {
         const halfD = roomData.size.depth / 2 - 1;
         p.x = Math.max(-halfW, Math.min(halfW, p.x));
         p.z = Math.max(-halfD, Math.min(halfD, p.z));
+
+        // Prop collision: push player out of props
+        const playerRadius = 0.5;
+        if (this.propColliders) {
+            for (const prop of this.propColliders) {
+                const dx = p.x - prop.x;
+                const dz = p.z - prop.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const minDist = playerRadius + prop.radius;
+                if (dist < minDist && dist > 0.001) {
+                    const pushFactor = (minDist - dist) / dist;
+                    p.x += dx * pushFactor;
+                    p.z += dz * pushFactor;
+                }
+            }
+        }
     }
 
     _onRoomCleared() {
