@@ -81,7 +81,11 @@ export class Player {
         // Procedural animation state
         this.walkCycle = 0;
         this.idleCycle = 0;
-        this.animBaseY = 0; // stored base Y for bobbing
+
+        // Bone animation
+        this.bones = null;       // { hips, spine, leftUpLeg, leftLeg, rightUpLeg, rightLeg, leftArm, rightArm, ... }
+        this.boneRestPose = {};  // bone name -> Quaternion (original rest rotation)
+        this.hasBones = false;
 
         // Shadow
         this.shadow = null;
@@ -91,6 +95,9 @@ export class Player {
         const type = this.classType === 'warrior' ? 'WARRIOR' : 'MAGE';
         this.mesh = ModelLoader.getModel(type);
         this.mesh.position.copy(this.position);
+
+        // Discover skeleton bones for animation
+        this._discoverBones();
 
         // Add circle shadow under feet
         const shadowGeo = new THREE.CircleGeometry(0.5, 16);
@@ -106,6 +113,67 @@ export class Player {
         this.mesh.add(this.shadow);
 
         return this.mesh;
+    }
+
+    /**
+     * Search the model hierarchy for skeleton bones.
+     * Supports multiple naming conventions (Mixamo, Meshy, generic).
+     */
+    _discoverBones() {
+        const boneMap = {};
+        const allBones = [];
+
+        this.mesh.traverse(child => {
+            if (child.isBone) {
+                allBones.push(child);
+                const n = child.name.toLowerCase();
+                // Map common bone names to our slots
+                if (n.includes('hip') || n === 'root') boneMap.hips = child;
+                else if (n.includes('spine') && !boneMap.spine) boneMap.spine = child;
+                else if (n.includes('spine1') || n.includes('spine2')) boneMap.upperSpine = child;
+                else if (n.includes('head') && !n.includes('end')) boneMap.head = child;
+
+                // Left leg
+                else if ((n.includes('leftupleg') || n.includes('left_thigh') || n.includes('lefthip') || n.includes('leftupperleg') || (n.includes('left') && n.includes('up') && n.includes('leg'))) && !boneMap.leftUpLeg) boneMap.leftUpLeg = child;
+                else if ((n.includes('leftleg') || n.includes('left_shin') || n.includes('leftlowerleg') || n.includes('left_calf')) && !n.includes('up') && !boneMap.leftLeg) boneMap.leftLeg = child;
+                else if ((n.includes('leftfoot') || n.includes('left_foot')) && !boneMap.leftFoot) boneMap.leftFoot = child;
+
+                // Right leg
+                else if ((n.includes('rightupleg') || n.includes('right_thigh') || n.includes('righthip') || n.includes('rightupperleg') || (n.includes('right') && n.includes('up') && n.includes('leg'))) && !boneMap.rightUpLeg) boneMap.rightUpLeg = child;
+                else if ((n.includes('rightleg') || n.includes('right_shin') || n.includes('rightlowerleg') || n.includes('right_calf')) && !n.includes('up') && !boneMap.rightLeg) boneMap.rightLeg = child;
+                else if ((n.includes('rightfoot') || n.includes('right_foot')) && !boneMap.rightFoot) boneMap.rightFoot = child;
+
+                // Left arm
+                else if ((n.includes('leftarm') || n.includes('left_upper_arm') || n.includes('leftshoulder')) && !n.includes('fore') && !boneMap.leftArm) boneMap.leftArm = child;
+                else if ((n.includes('leftforearm') || n.includes('left_forearm') || n.includes('left_lower_arm')) && !boneMap.leftForeArm) boneMap.leftForeArm = child;
+
+                // Right arm
+                else if ((n.includes('rightarm') || n.includes('right_upper_arm') || n.includes('rightshoulder')) && !n.includes('fore') && !boneMap.rightArm) boneMap.rightArm = child;
+                else if ((n.includes('rightforearm') || n.includes('right_forearm') || n.includes('right_lower_arm')) && !boneMap.rightForeArm) boneMap.rightForeArm = child;
+            }
+        });
+
+        // Need at minimum hip + one leg pair to enable bone animation
+        const hasLegs = (boneMap.leftUpLeg || boneMap.leftLeg) && (boneMap.rightUpLeg || boneMap.rightLeg);
+        if (allBones.length > 0 && hasLegs) {
+            this.bones = boneMap;
+            this.hasBones = true;
+
+            // Save rest pose quaternions for all mapped bones
+            for (const [key, bone] of Object.entries(boneMap)) {
+                if (bone) {
+                    this.boneRestPose[key] = bone.quaternion.clone();
+                }
+            }
+            console.log(`[Player] Bone animation enabled (${allBones.length} bones, mapped: ${Object.keys(boneMap).join(', ')})`);
+        } else {
+            this.hasBones = false;
+            if (allBones.length > 0) {
+                console.log(`[Player] Found ${allBones.length} bones but couldn't map legs. Names: ${allBones.map(b => b.name).join(', ')}`);
+            } else {
+                console.log('[Player] No bones found, using mesh-based animation fallback');
+            }
+        }
     }
 
     update(dt) {
@@ -297,47 +365,135 @@ export class Player {
 
         this.mesh.position.copy(this.position);
         this.mesh.rotation.y = this.rotation;
+        this.mesh.scale.set(1, 1, 1);
+        this.mesh.rotation.x = 0;
 
-        // Procedural animation
+        if (this.hasBones) {
+            this._updateBoneAnimation(dt);
+        } else {
+            this._updateMeshFallbackAnimation(dt);
+        }
+
+        // Flash effect during invincibility
+        if (this.isInvincible) {
+            this.mesh.visible = Math.floor(Date.now() / 100) % 2 === 0;
+        } else {
+            this.mesh.visible = true;
+        }
+    }
+
+    /**
+     * Bone-based animation: rotate skeleton bones for walk/idle/attack.
+     */
+    _updateBoneAnimation(dt) {
+        const b = this.bones;
+        const rest = this.boneRestPose;
+        const _euler = new THREE.Euler();
+        const _quat = new THREE.Quaternion();
+
+        // Helper: apply additive rotation to bone from its rest pose
+        const rotateBone = (key, rx, ry, rz) => {
+            if (!b[key] || !rest[key]) return;
+            _euler.set(rx, ry, rz);
+            _quat.setFromEuler(_euler);
+            b[key].quaternion.copy(rest[key]).multiply(_quat);
+        };
+
+        // Reset all bones to rest pose first
+        for (const [key, bone] of Object.entries(b)) {
+            if (bone && rest[key]) {
+                bone.quaternion.copy(rest[key]);
+            }
+        }
+
         if (this.isDodging) {
-            // Dodge: flatten and spin
-            this.mesh.rotation.x = 0;
+            // No special bone pose during dodge
         } else if (this.isAttacking || this.isUsingSkill) {
-            // Attack: handled by subclass scale bounce, reset lean
-            this.mesh.rotation.x = 0;
+            this.walkCycle = 0;
+            // Attack pose: arms forward, slight crouch
+            rotateBone('spine', -0.1, 0, 0);
+            rotateBone('leftArm', -0.6, 0, 0);
+            rotateBone('rightArm', -0.6, 0, 0);
+            rotateBone('leftUpLeg', -0.1, 0, 0);
+            rotateBone('rightUpLeg', -0.1, 0, 0);
+        } else if (this.isMoving) {
+            // --- Walk cycle ---
+            this.walkCycle += dt * 8; // cycle speed
+            this.idleCycle = 0;
+            const t = this.walkCycle;
+            const sin = Math.sin(t);
+            const cos = Math.cos(t);
+
+            // Hips: subtle vertical bob
+            if (b.hips) {
+                const bobY = Math.abs(sin) * 0.03;
+                b.hips.position.y = (b.hips.position.y || 0) + bobY;
+            }
+
+            // Upper legs: swing forward/backward (opposite sides)
+            const legSwing = 0.45;
+            rotateBone('leftUpLeg', sin * legSwing, 0, 0);
+            rotateBone('rightUpLeg', -sin * legSwing, 0, 0);
+
+            // Lower legs: bend knee on back swing
+            const kneeL = sin > 0 ? 0 : -sin * 0.5;
+            const kneeR = -sin > 0 ? 0 : sin * 0.5;
+            rotateBone('leftLeg', kneeL, 0, 0);
+            rotateBone('rightLeg', kneeR, 0, 0);
+
+            // Feet: counter-rotate to stay flat
+            rotateBone('leftFoot', -sin * 0.15, 0, 0);
+            rotateBone('rightFoot', sin * 0.15, 0, 0);
+
+            // Arms: swing opposite to legs
+            const armSwing = 0.35;
+            rotateBone('leftArm', -sin * armSwing, 0, 0);
+            rotateBone('rightArm', sin * armSwing, 0, 0);
+            rotateBone('leftForeArm', -0.15, 0, 0);
+            rotateBone('rightForeArm', -0.15, 0, 0);
+
+            // Spine: slight counter-twist
+            rotateBone('spine', 0.03, sin * 0.04, 0);
+        } else {
+            // --- Idle breathing ---
+            this.idleCycle += dt * 2.5;
+            this.walkCycle = 0;
+            const breath = Math.sin(this.idleCycle);
+
+            // Spine: gentle breathing expand
+            rotateBone('spine', breath * 0.02, 0, 0);
+
+            // Arms: slight resting sway
+            rotateBone('leftArm', 0, 0, breath * 0.02);
+            rotateBone('rightArm', 0, 0, -breath * 0.02);
+        }
+    }
+
+    /**
+     * Mesh-based fallback animation when no bones are found.
+     */
+    _updateMeshFallbackAnimation(dt) {
+        if (this.isDodging) {
+            return;
+        } else if (this.isAttacking || this.isUsingSkill) {
             this.walkCycle = 0;
         } else if (this.isMoving) {
-            // Walking/running animation
             this.walkCycle += dt * 12;
             this.idleCycle = 0;
 
-            // Vertical bob
             const bobY = Math.abs(Math.sin(this.walkCycle)) * 0.08;
             this.mesh.position.y = this.position.y + bobY;
-
-            // Slight forward lean
             this.mesh.rotation.x = 0.06;
 
-            // Subtle squash/stretch sync with steps
             const squash = 1 + Math.sin(this.walkCycle * 2) * 0.02;
             this.mesh.scale.set(squash, 1 / squash, squash);
         } else {
-            // Idle breathing
             this.idleCycle += dt * 2.5;
             this.walkCycle = 0;
 
             const breathe = Math.sin(this.idleCycle) * 0.015;
             this.mesh.scale.set(1 - breathe * 0.5, 1 + breathe, 1 - breathe * 0.5);
-            this.mesh.rotation.x = 0;
             this.mesh.position.y = this.position.y;
-        }
-
-        // Flash effect during invincibility
-        if (this.isInvincible) {
-            const visible = Math.floor(Date.now() / 100) % 2 === 0;
-            this.mesh.visible = visible;
-        } else {
-            this.mesh.visible = true;
         }
     }
 

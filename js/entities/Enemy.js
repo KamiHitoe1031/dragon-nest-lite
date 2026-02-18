@@ -55,8 +55,13 @@ export class Enemy {
         this.lootDropped = false;
 
         // Procedural animation
-        this.walkCycle = Math.random() * Math.PI * 2; // random start phase
+        this.walkCycle = Math.random() * Math.PI * 2;
         this.idleCycle = Math.random() * Math.PI * 2;
+
+        // Bone animation
+        this.bones = null;
+        this.boneRestPose = {};
+        this.hasBones = false;
     }
 
     init() {
@@ -72,10 +77,44 @@ export class Enemy {
         this.mesh = ModelLoader.getModel(type, { scale });
         this.mesh.position.copy(this.position);
 
+        // Discover skeleton bones for animation
+        this._discoverBones();
+
         // HP bar above head
         this._createHPBar();
 
         return this.mesh;
+    }
+
+    _discoverBones() {
+        const boneMap = {};
+        const allBones = [];
+
+        this.mesh.traverse(child => {
+            if (child.isBone) {
+                allBones.push(child);
+                const n = child.name.toLowerCase();
+                if (n.includes('hip') || n === 'root') boneMap.hips = child;
+                else if (n.includes('spine') && !boneMap.spine) boneMap.spine = child;
+                else if ((n.includes('leftupleg') || n.includes('left_thigh') || n.includes('leftupperleg') || (n.includes('left') && n.includes('up') && n.includes('leg'))) && !boneMap.leftUpLeg) boneMap.leftUpLeg = child;
+                else if ((n.includes('leftleg') || n.includes('left_shin') || n.includes('leftlowerleg')) && !n.includes('up') && !boneMap.leftLeg) boneMap.leftLeg = child;
+                else if ((n.includes('rightupleg') || n.includes('right_thigh') || n.includes('rightupperleg') || (n.includes('right') && n.includes('up') && n.includes('leg'))) && !boneMap.rightUpLeg) boneMap.rightUpLeg = child;
+                else if ((n.includes('rightleg') || n.includes('right_shin') || n.includes('rightlowerleg')) && !n.includes('up') && !boneMap.rightLeg) boneMap.rightLeg = child;
+                else if ((n.includes('leftarm') || n.includes('left_upper_arm')) && !n.includes('fore') && !boneMap.leftArm) boneMap.leftArm = child;
+                else if ((n.includes('rightarm') || n.includes('right_upper_arm')) && !n.includes('fore') && !boneMap.rightArm) boneMap.rightArm = child;
+                else if ((n.includes('leftforearm') || n.includes('left_forearm')) && !boneMap.leftForeArm) boneMap.leftForeArm = child;
+                else if ((n.includes('rightforearm') || n.includes('right_forearm')) && !boneMap.rightForeArm) boneMap.rightForeArm = child;
+            }
+        });
+
+        const hasLegs = (boneMap.leftUpLeg || boneMap.leftLeg) && (boneMap.rightUpLeg || boneMap.rightLeg);
+        if (allBones.length > 0 && hasLegs) {
+            this.bones = boneMap;
+            this.hasBones = true;
+            for (const [key, bone] of Object.entries(boneMap)) {
+                if (bone) this.boneRestPose[key] = bone.quaternion.clone();
+            }
+        }
     }
 
     _createHPBar() {
@@ -104,7 +143,7 @@ export class Enemy {
 
         if (this.isFrozen || this.isStunned) {
             this.currentAttackCooldown -= dt * 1000;
-            this._updateMesh();
+            this._updateMesh(dt);
             return;
         }
 
@@ -124,7 +163,7 @@ export class Enemy {
         }
 
         this.currentAttackCooldown -= dt * 1000;
-        this._updateMesh();
+        this._updateMesh(dt);
     }
 
     _behaviorChase(dt) {
@@ -472,49 +511,111 @@ export class Enemy {
         }
     }
 
-    _updateMesh() {
+    _updateMesh(dt) {
         if (!this.mesh || this.isDead) return;
 
         this.mesh.position.copy(this.position);
         this.mesh.rotation.y = this.rotation;
+        this.mesh.rotation.x = 0;
+        this.mesh.scale.set(1, 1, 1);
 
-        // Procedural animation based on state
-        const dt = this.game.clock ? this.game.clock.getDelta() : 0.016;
-        if (this.state === 'chase' || this.state === 'attack_ready') {
-            // Walking: bob + lean
-            this.walkCycle += 10 * 0.016; // ~consistent speed
-            this.idleCycle = 0;
+        const isChasing = this.state === 'chase' || this.state === 'attack_ready';
 
-            const bobY = Math.abs(Math.sin(this.walkCycle)) * 0.06;
-            this.mesh.position.y = this.position.y + bobY;
-            this.mesh.rotation.x = 0.05;
-
-            const squash = 1 + Math.sin(this.walkCycle * 2) * 0.02;
-            if (!this.isAttacking) {
-                this.mesh.scale.set(squash, 1 / squash, squash);
-            }
-        } else if (this.isAttacking) {
-            // Attack animation handled by scale bounce
-            this.mesh.rotation.x = 0;
-        } else if (this.isFrozen) {
-            // Frozen: no animation, slightly blue-tinted handled elsewhere
-            this.mesh.rotation.x = 0;
+        if (this.hasBones) {
+            this._updateBoneAnimation(dt, isChasing);
         } else {
-            // Idle breathing
-            this.idleCycle += 2.0 * 0.016;
-            this.walkCycle = 0;
-
-            const breathe = Math.sin(this.idleCycle) * 0.015;
-            if (!this.isAttacking) {
-                this.mesh.scale.set(1 - breathe * 0.3, 1 + breathe, 1 - breathe * 0.3);
-            }
-            this.mesh.rotation.x = 0;
-            this.mesh.position.y = this.position.y;
+            this._updateFallbackAnimation(dt, isChasing);
         }
 
         // Make HP bar face camera
         if (this.hpBarGroup) {
             this.hpBarGroup.lookAt(this.game.camera.position);
+        }
+    }
+
+    _updateBoneAnimation(dt, isChasing) {
+        const b = this.bones;
+        const rest = this.boneRestPose;
+        const _euler = new THREE.Euler();
+        const _quat = new THREE.Quaternion();
+
+        const rotateBone = (key, rx, ry, rz) => {
+            if (!b[key] || !rest[key]) return;
+            _euler.set(rx, ry, rz);
+            _quat.setFromEuler(_euler);
+            b[key].quaternion.copy(rest[key]).multiply(_quat);
+        };
+
+        // Reset to rest pose
+        for (const [key, bone] of Object.entries(b)) {
+            if (bone && rest[key]) bone.quaternion.copy(rest[key]);
+        }
+
+        if (this.isFrozen) {
+            return; // No animation when frozen
+        }
+
+        if (this.isAttacking) {
+            // Attack lunge: lean forward, arms out
+            rotateBone('spine', -0.15, 0, 0);
+            rotateBone('leftArm', -0.5, 0, 0);
+            rotateBone('rightArm', -0.5, 0, 0);
+        } else if (isChasing) {
+            // Walk cycle
+            this.walkCycle += dt * 7;
+            this.idleCycle = 0;
+            const t = this.walkCycle;
+            const sin = Math.sin(t);
+
+            const legSwing = 0.4;
+            rotateBone('leftUpLeg', sin * legSwing, 0, 0);
+            rotateBone('rightUpLeg', -sin * legSwing, 0, 0);
+
+            const kneeL = sin > 0 ? 0 : -sin * 0.4;
+            const kneeR = -sin > 0 ? 0 : sin * 0.4;
+            rotateBone('leftLeg', kneeL, 0, 0);
+            rotateBone('rightLeg', kneeR, 0, 0);
+
+            rotateBone('leftArm', -sin * 0.3, 0, 0);
+            rotateBone('rightArm', sin * 0.3, 0, 0);
+
+            rotateBone('spine', 0.04, sin * 0.03, 0);
+
+            // Small hip bob
+            if (b.hips) {
+                b.hips.position.y = (b.hips.position.y || 0) + Math.abs(sin) * 0.02;
+            }
+        } else {
+            // Idle breathing
+            this.idleCycle += dt * 2.0;
+            this.walkCycle = 0;
+            const breath = Math.sin(this.idleCycle);
+
+            rotateBone('spine', breath * 0.02, 0, 0);
+            rotateBone('leftArm', 0, 0, breath * 0.02);
+            rotateBone('rightArm', 0, 0, -breath * 0.02);
+        }
+    }
+
+    _updateFallbackAnimation(dt, isChasing) {
+        if (this.isFrozen) return;
+
+        if (this.isAttacking) {
+            // handled by scale bounce in _tryAttack
+        } else if (isChasing) {
+            this.walkCycle += dt * 10;
+            this.idleCycle = 0;
+            const bobY = Math.abs(Math.sin(this.walkCycle)) * 0.06;
+            this.mesh.position.y = this.position.y + bobY;
+            this.mesh.rotation.x = 0.05;
+            const squash = 1 + Math.sin(this.walkCycle * 2) * 0.02;
+            this.mesh.scale.set(squash, 1 / squash, squash);
+        } else {
+            this.idleCycle += dt * 2.0;
+            this.walkCycle = 0;
+            const breathe = Math.sin(this.idleCycle) * 0.015;
+            this.mesh.scale.set(1 - breathe * 0.3, 1 + breathe, 1 - breathe * 0.3);
+            this.mesh.position.y = this.position.y;
         }
     }
 }
