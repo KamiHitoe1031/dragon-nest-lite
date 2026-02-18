@@ -1,0 +1,111 @@
+[
+  {
+    "id": "slime",
+    "name": "スライム",
+    "hp": 30,
+    "atk": 8,
+    "def": 2,
+    "speed": 40,
+    "xpValue": 10,
+    "goldDrop": { "min": 5, "max": 15 },
+    "behavior": "chase",
+    "attackCooldown": 2000,
+    "attackRange": 1.5,
+    "detectionRange": 10,
+    "modelKey": "enemy_slime",
+    "animations": {
+      "idle": "idle",
+      "move": "move",
+      "attack": "attack",
+      "die": "die"
+    },
+    "sfx": {
+      "attack": "sfx_enemy_hurt",
+      "die": "sfx_enemy_die"
+    },
+    "spawnDungeons": [1, 2]
+  },
+  {
+    "id": "goblin",
+    "name": "ゴブリン",
+    "hp": 60,
+    "atk": 15,
+    "def": 5,
+    "speed": 70,
+    "xpValue": 20,
+    "goldDrop": { "min": 10, "max": 30 },
+    "behavior": "rush_retreat",
+    "attackCooldown": 1500,
+    "attackRange": 2,
+    "detectionRange": 12,
+    "modelKey": "enemy_goblin",
+    "animations": {
+      "idle": "idle",
+      "move": "move",
+      "attack": "attack",
+      "die": "die"
+    },
+    "sfx": {
+      "attack": "sfx_enemy_hurt",
+      "die": "sfx_enemy_die"
+    },
+    "spawnDungeons": [1, 2, 3]
+  },
+  {
+    "id": "skeleton",
+    "name": "スケルトン",
+    "hp": 80,
+    "atk": 20,
+    "def": 10,
+    "speed": 55,
+    "xpValue": 30,
+    "goldDrop": { "min": 15, "max": 40 },
+    "behavior": "guard_attack",
+    "attackCooldown": 2500,
+    "attackRange": 2.5,
+    "detectionRange": 10,
+    "modelKey": "enemy_skeleton",
+    "animations": {
+      "idle": "idle",
+      "move": "move",
+      "attack": "attack",
+      "die": "die"
+    },
+    "sfx": {
+      "attack": "sfx_enemy_hurt",
+      "die": "sfx_enemy_die"
+    },
+    "spawnDungeons": [2, 3]
+  },
+  {
+    "id": "dragon",
+    "name": "ドラゴン",
+    "hp": 500,
+    "atk": 40,
+    "def": 20,
+    "speed": 60,
+    "xpValue": 200,
+    "goldDrop": { "min": 100, "max": 200 },
+    "behavior": "boss_dragon",
+    "isBoss": true,
+    "attackPatterns": [
+      { "id": "rush", "damage": 50, "cooldown": 5000, "range": 8 },
+      { "id": "breath", "damage": 35, "cooldown": 8000, "range": 12, "aoeType": "cone", "aoeAngle": 60 },
+      { "id": "tailswipe", "damage": 30, "cooldown": 3000, "range": 4, "aoeType": "circle" }
+    ],
+    "modelKey": "boss_dragon",
+    "animations": {
+      "idle": "idle",
+      "move": "move",
+      "attack": "attack",
+      "die": "die"
+    },
+    "sfx": {
+      "attack": "sfx_boss_attack",
+      "die": "sfx_boss_die",
+      "breath": "sfx_dragon_breath",
+      "rush": "sfx_dragon_rush"
+    },
+    "spawnDungeons": [3]
+  }
+]

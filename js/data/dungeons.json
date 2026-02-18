@@ -1,0 +1,221 @@
+{
+  "dungeon_1": {
+    "id": 1,
+    "name": "森の洞窟",
+    "nameEN": "Forest Cave",
+    "theme": "forest_cave",
+    "bgm": "bgm_dungeon_forest",
+    "firstClearSP": 5,
+    "repeatClearSP": 2,
+    "onFirstClear": {
+      "event": "specialization_select",
+      "description": "初回クリア時にホームタウンでスキルマスターNPCが特化選択イベントを発火"
+    },
+    "rooms": [
+      {
+        "id": "d1_room_1",
+        "size": { "width": 20, "depth": 15 },
+        "enemies": [
+          { "type": "slime", "position": [5, 0, 3] },
+          { "type": "slime", "position": [8, 0, 7] },
+          { "type": "slime", "position": [12, 0, 5] }
+        ],
+        "props": [
+          { "type": "rock", "model": "env_rock_01", "position": [3, 0, 10] },
+          { "type": "tree", "model": "env_tree_01", "position": [15, 0, 2] }
+        ],
+        "exitDoor": { "position": [10, 0, 14], "locked": true }
+      },
+      {
+        "id": "d1_room_2",
+        "size": { "width": 25, "depth": 20 },
+        "enemies": [
+          { "type": "slime", "position": [5, 0, 5] },
+          { "type": "slime", "position": [10, 0, 10] },
+          { "type": "goblin", "position": [15, 0, 8] },
+          { "type": "goblin", "position": [20, 0, 12] }
+        ],
+        "props": [],
+        "exitDoor": { "position": [12, 0, 19], "locked": true }
+      },
+      {
+        "id": "d1_room_3",
+        "size": { "width": 30, "depth": 25 },
+        "enemies": [
+          { "type": "slime", "position": [5, 0, 5] },
+          { "type": "slime", "position": [10, 0, 5] },
+          { "type": "slime", "position": [15, 0, 5] },
+          { "type": "goblin", "position": [20, 0, 10] },
+          { "type": "goblin", "position": [25, 0, 15] }
+        ],
+        "chest": { "position": [15, 0, 20], "rewards": { "gold": [50, 100] } },
+        "props": [],
+        "exitDoor": null
+      }
+    ]
+  },
+  "dungeon_2": {
+    "id": 2,
+    "name": "古代遺跡",
+    "nameEN": "Ancient Ruins",
+    "theme": "ruins",
+    "bgm": "bgm_dungeon_ruins",
+    "firstClearSP": 7,
+    "repeatClearSP": 2,
+    "rooms": [
+      {
+        "id": "d2_room_1",
+        "size": { "width": 20, "depth": 15 },
+        "enemies": [
+          { "type": "goblin", "position": [5, 0, 5] },
+          { "type": "goblin", "position": [10, 0, 8] },
+          { "type": "skeleton", "position": [15, 0, 5] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [7, 0, 3] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [13, 0, 3] }
+        ],
+        "exitDoor": { "position": [10, 0, 14], "locked": true }
+      },
+      {
+        "id": "d2_room_2",
+        "size": { "width": 25, "depth": 20 },
+        "enemies": [
+          { "type": "goblin", "position": [5, 0, 5] },
+          { "type": "skeleton", "position": [12, 0, 8] },
+          { "type": "skeleton", "position": [18, 0, 12] },
+          { "type": "goblin", "position": [22, 0, 6] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [10, 0, 10] },
+          { "type": "rubble", "model": "env_ruins_rubble", "position": [20, 0, 15] }
+        ],
+        "exitDoor": { "position": [12, 0, 19], "locked": true }
+      },
+      {
+        "id": "d2_room_3",
+        "size": { "width": 30, "depth": 20 },
+        "enemies": [
+          { "type": "skeleton", "position": [5, 0, 5] },
+          { "type": "skeleton", "position": [10, 0, 10] },
+          { "type": "goblin", "position": [15, 0, 3] },
+          { "type": "goblin", "position": [20, 0, 8] },
+          { "type": "skeleton", "position": [25, 0, 12] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [8, 0, 7] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [18, 0, 7] },
+          { "type": "magic_circle", "model": "env_magic_circle", "position": [15, 0, 15] }
+        ],
+        "exitDoor": { "position": [15, 0, 19], "locked": true }
+      },
+      {
+        "id": "d2_room_4",
+        "size": { "width": 30, "depth": 25 },
+        "enemies": [
+          { "type": "skeleton", "position": [5, 0, 5] },
+          { "type": "skeleton", "position": [10, 0, 10] },
+          { "type": "skeleton", "position": [15, 0, 5] },
+          { "type": "goblin", "position": [20, 0, 12] },
+          { "type": "goblin", "position": [25, 0, 8] },
+          { "type": "goblin", "position": [12, 0, 15] }
+        ],
+        "chest": { "position": [15, 0, 20], "rewards": { "gold": [80, 150] } },
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [7, 0, 3] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [23, 0, 3] },
+          { "type": "mural", "model": "env_ruins_mural", "position": [15, 0, 0] }
+        ],
+        "exitDoor": null
+      }
+    ]
+  },
+  "dungeon_3": {
+    "id": 3,
+    "name": "遺跡最深部",
+    "nameEN": "Ruins Depths",
+    "theme": "boss_lair",
+    "bgm": "bgm_dungeon_ruins",
+    "bossBgm": "bgm_boss",
+    "firstClearSP": 10,
+    "repeatClearSP": 2,
+    "rooms": [
+      {
+        "id": "d3_room_1",
+        "size": { "width": 25, "depth": 20 },
+        "enemies": [
+          { "type": "goblin", "position": [5, 0, 5] },
+          { "type": "goblin", "position": [10, 0, 8] },
+          { "type": "skeleton", "position": [15, 0, 5] },
+          { "type": "skeleton", "position": [20, 0, 10] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [8, 0, 3] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [18, 0, 3] },
+          { "type": "torch", "model": "env_torch", "position": [3, 0, 10] },
+          { "type": "torch", "model": "env_torch", "position": [22, 0, 10] }
+        ],
+        "exitDoor": { "position": [12, 0, 19], "locked": true }
+      },
+      {
+        "id": "d3_room_2",
+        "size": { "width": 30, "depth": 25 },
+        "enemies": [
+          { "type": "skeleton", "position": [5, 0, 5] },
+          { "type": "skeleton", "position": [12, 0, 8] },
+          { "type": "skeleton", "position": [20, 0, 5] },
+          { "type": "goblin", "position": [8, 0, 15] },
+          { "type": "goblin", "position": [15, 0, 12] },
+          { "type": "goblin", "position": [22, 0, 15] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [7, 0, 10] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [23, 0, 10] },
+          { "type": "rubble", "model": "env_ruins_rubble", "position": [15, 0, 20] }
+        ],
+        "exitDoor": { "position": [15, 0, 24], "locked": true }
+      },
+      {
+        "id": "d3_room_3",
+        "size": { "width": 30, "depth": 25 },
+        "enemies": [
+          { "type": "skeleton", "position": [5, 0, 5] },
+          { "type": "skeleton", "position": [10, 0, 10] },
+          { "type": "skeleton", "position": [20, 0, 5] },
+          { "type": "skeleton", "position": [25, 0, 10] },
+          { "type": "goblin", "position": [8, 0, 15] },
+          { "type": "goblin", "position": [15, 0, 18] },
+          { "type": "goblin", "position": [22, 0, 15] }
+        ],
+        "chest": { "position": [15, 0, 20], "rewards": { "gold": [100, 200] } },
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [5, 0, 3] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [25, 0, 3] },
+          { "type": "torch", "model": "env_torch", "position": [3, 0, 12] },
+          { "type": "torch", "model": "env_torch", "position": [27, 0, 12] },
+          { "type": "magic_circle", "model": "env_magic_circle", "position": [15, 0, 12] }
+        ],
+        "exitDoor": { "position": [15, 0, 24], "locked": true }
+      },
+      {
+        "id": "d3_boss",
+        "size": { "width": 40, "depth": 40 },
+        "isBossRoom": true,
+        "enemies": [
+          { "type": "dragon", "position": [20, 0, 30] }
+        ],
+        "props": [
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [5, 0, 5] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [35, 0, 5] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [5, 0, 35] },
+          { "type": "pillar", "model": "env_ruins_pillar", "position": [35, 0, 35] },
+          { "type": "torch", "model": "env_torch", "position": [10, 0, 10] },
+          { "type": "torch", "model": "env_torch", "position": [30, 0, 10] },
+          { "type": "torch", "model": "env_torch", "position": [10, 0, 30] },
+          { "type": "torch", "model": "env_torch", "position": [30, 0, 30] }
+        ],
+        "exitDoor": null
+      }
+    ]
+  }
+}

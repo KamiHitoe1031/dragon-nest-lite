@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-02-18 10:40:03",
+  "total_models": 2,
+  "succeeded": [
+    "boss_dragon",
+    "npc_skillmaster"
+  ],
+  "failed": [],
+  "skipped": [],
+  "settings": {
+    "skip_refine": false,
+    "skip_rigging": false,
+    "dry_run": false,
+    "poll_interval": 15
+  }
+}

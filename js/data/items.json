@@ -1,0 +1,28 @@
+{
+  "consumables": [
+    {
+      "id": "potion_hp",
+      "name": "HPポーション",
+      "description": "HP 50回復",
+      "cost": 50,
+      "effect": { "type": "heal_hp", "value": 50 },
+      "icon": "icon_potion_hp",
+      "model": "item_potion_hp"
+    },
+    {
+      "id": "potion_mp",
+      "name": "MPポーション",
+      "description": "MP 30回復",
+      "cost": 30,
+      "effect": { "type": "heal_mp", "value": 30 },
+      "icon": "icon_potion_mp",
+      "model": "item_potion_mp"
+    }
+  ],
+  "weaponUpgrade": {
+    "costPerLevel": [100, 200, 400, 800, 1600],
+    "atkBonusPerLevel": 5,
+    "matkBonusPerLevel": 5,
+    "maxLevel": 5
+  }
+}
