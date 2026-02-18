@@ -164,6 +164,7 @@ export class UIManager {
                 <h1 id="menu-title">Paused</h1>
                 <button class="menu-btn" id="btn-resume">Resume</button>
                 <button class="menu-btn" id="btn-save">Save Game</button>
+                <button class="menu-btn" id="btn-voice-toggle">Voice: ON</button>
                 <button class="menu-btn" id="btn-title">Return to Title</button>
             </div>
         `;

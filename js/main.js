@@ -44,6 +44,7 @@ class Game {
 
         // Camera
         this.cameraAngle = 0;
+        this.cameraPitch = 0; // Vertical angle adjustment (-0.5 to 0.5)
         this.cameraZoom = CONFIG.CAMERA_ZOOM_DEFAULT;
         this.cameraTargetPos = new THREE.Vector3();
 
@@ -167,6 +168,11 @@ class Game {
             this.saveGame();
             this.ui.showCenterMessage('Game Saved!', 1000);
         });
+        document.getElementById('btn-voice-toggle')?.addEventListener('click', () => {
+            const enabled = this.audio.toggleVoice();
+            const btn = document.getElementById('btn-voice-toggle');
+            if (btn) btn.textContent = `Voice: ${enabled ? 'ON' : 'OFF'}`;
+        });
         document.getElementById('btn-title')?.addEventListener('click', () => {
             this.toggleMenu();
             this.sceneManager.switchTo('title');
@@ -234,6 +240,9 @@ class Game {
         if (this.input.isMouseDown(2) || this.input.isPointerLocked) {
             const delta = this.input.consumeMouseDelta();
             this.cameraAngle -= delta.x * 0.003;
+            // Vertical pitch adjustment
+            this.cameraPitch += delta.y * 0.002;
+            this.cameraPitch = Math.max(-0.5, Math.min(0.5, this.cameraPitch));
         }
 
         // Scroll wheel zoom
@@ -243,15 +252,17 @@ class Game {
             this.cameraZoom = Math.max(CONFIG.CAMERA_ZOOM_MIN, Math.min(CONFIG.CAMERA_ZOOM_MAX, this.cameraZoom));
         }
 
-        // Calculate camera position with zoom
+        // Calculate camera position with zoom and pitch
         const offset = CONFIG.CAMERA_OFFSET;
         const zoom = this.cameraZoom;
         const cos = Math.cos(this.cameraAngle);
         const sin = Math.sin(this.cameraAngle);
 
+        // Pitch adjusts Y offset and Z distance (higher pitch = more top-down, lower = more side)
+        const pitchFactor = 1 + this.cameraPitch;
         const targetX = this.player.position.x + (offset.x * cos - offset.z * sin) * zoom;
-        const targetY = this.player.position.y + offset.y * zoom;
-        const targetZ = this.player.position.z + (offset.x * sin + offset.z * cos) * zoom;
+        const targetY = this.player.position.y + offset.y * zoom * pitchFactor;
+        const targetZ = this.player.position.z + (offset.x * sin + offset.z * cos) * zoom * (2 - pitchFactor);
 
         this.cameraTargetPos.set(targetX, targetY, targetZ);
 

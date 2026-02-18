@@ -23,6 +23,9 @@ mkdir -p dist/assets/audio/bgm
 mkdir -p dist/assets/audio/sfx
 
 cp assets/models/*.glb dist/assets/models/
+# Include backup unrigged models (texture source for rigged models)
+mkdir -p dist/assets/models/_backup_unrigged
+cp assets/models/_backup_unrigged/*.glb dist/assets/models/_backup_unrigged/ 2>/dev/null || true
 cp assets/textures/*.png dist/assets/textures/
 cp assets/textures/effects/*.png dist/assets/textures/effects/ 2>/dev/null || true
 cp assets/ui/icon_*.png dist/assets/ui/ 2>/dev/null || true

@@ -150,6 +150,51 @@ export class ModelLoader {
             }
         }
 
+        // Restore textures for rigged models from unrigged backups
+        const TEXTURE_RESTORE_MAP = {
+            'assets/models/fighter.glb': 'assets/models/_backup_unrigged/fighter.glb',
+            'assets/models/mage.glb': 'assets/models/_backup_unrigged/mage.glb',
+            'assets/models/enemy_goblin.glb': 'assets/models/_backup_unrigged/enemy_goblin.glb',
+        };
+
+        for (const [riggedPath, unriggedPath] of Object.entries(TEXTURE_RESTORE_MAP)) {
+            const riggedEntry = ModelLoader._cache.get(riggedPath);
+            if (!riggedEntry) continue;
+
+            try {
+                const unriggedGltf = await new Promise((resolve, reject) => {
+                    loader.load(unriggedPath, resolve, undefined, reject);
+                });
+
+                // Collect textured materials from the unrigged model
+                const unriggedMaterials = [];
+                unriggedGltf.scene.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        const mat = child.material;
+                        if (mat.map || mat.normalMap || mat.emissiveMap || mat.roughnessMap) {
+                            unriggedMaterials.push(mat);
+                        }
+                    }
+                });
+
+                if (unriggedMaterials.length > 0) {
+                    // Apply textured materials to rigged model meshes
+                    let matIndex = 0;
+                    riggedEntry.scene.traverse(child => {
+                        if (child.isMesh || child.isSkinnedMesh) {
+                            const sourceMat = unriggedMaterials[matIndex % unriggedMaterials.length];
+                            child.material = sourceMat.clone();
+                            child.material.skinning = true;
+                            matIndex++;
+                        }
+                    });
+                    console.log(`[ModelLoader] Restored textures for ${riggedPath} from ${unriggedMaterials.length} materials`);
+                }
+            } catch (e) {
+                console.warn(`[ModelLoader] Could not restore textures for ${riggedPath}:`, e.message || e);
+            }
+        }
+
         ModelLoader._preloaded = true;
         console.log(`[ModelLoader] Preload complete: ${ModelLoader._cache.size}/${total} models, ${ModelLoader._textureCache.size} textures loaded`);
     }
@@ -193,7 +238,11 @@ export class ModelLoader {
         // Deep clone materials to avoid shared state issues
         clone.traverse(child => {
             if (child.isMesh && child.material) {
-                child.material = child.material.clone();
+                if (Array.isArray(child.material)) {
+                    child.material = child.material.map(m => m.clone());
+                } else {
+                    child.material = child.material.clone();
+                }
             }
         });
 

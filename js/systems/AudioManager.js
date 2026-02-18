@@ -14,6 +14,7 @@ export class AudioManager {
         this.ambientElement = null;
         this.currentAmbient = '';
         this.initialized = false;
+        this.voiceEnabled = true; // Voice ON/OFF toggle
     }
 
     async init() {
@@ -97,17 +98,28 @@ export class AudioManager {
         this.currentAmbient = '';
     }
 
+    // Character voice SFX names that are affected by the voice toggle
+    static VOICE_SFX = ['sfx_player_hurt', 'sfx_player_death'];
+
     playSFX(name) {
         if (!this.initialized) return;
+
+        // Skip character voice SFX if voice is disabled
+        if (!this.voiceEnabled && AudioManager.VOICE_SFX.includes(name)) return;
 
         try {
             const audio = new Audio(`assets/audio/sfx/${name}.mp3`);
             audio.volume = CONFIG.SFX_VOLUME;
 
             // Random pitch variance
-            const rate = 1 + (Math.random() - 0.5) * CONFIG.SFX_PITCH_VARIANCE * 2;
-            audio.playbackRate = rate;
+            let rate = 1 + (Math.random() - 0.5) * CONFIG.SFX_PITCH_VARIANCE * 2;
 
+            // Pitch up character voice SFX for feminine sound
+            if (AudioManager.VOICE_SFX.includes(name)) {
+                rate *= 1.35;
+            }
+
+            audio.playbackRate = rate;
             audio.play().catch(() => {});
         } catch (e) {
             // SFX file not found - expected during development
@@ -115,6 +127,7 @@ export class AudioManager {
     }
 
     playVoice(name) {
+        if (!this.voiceEnabled) return;
         try {
             const audio = new Audio(`assets/audio/voice/${name}.mp3`);
             audio.volume = CONFIG.VOICE_VOLUME;
@@ -122,6 +135,11 @@ export class AudioManager {
         } catch (e) {
             // Voice file not found
         }
+    }
+
+    toggleVoice() {
+        this.voiceEnabled = !this.voiceEnabled;
+        return this.voiceEnabled;
     }
 
     setBGMVolume(volume) {

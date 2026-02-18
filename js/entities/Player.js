@@ -489,14 +489,69 @@ export class Player {
             // No special bone pose during dodge
         } else if (this.isAttacking || this.isUsingSkill) {
             this.walkCycle = 0;
-            // Attack pose: arms forward, slight crouch
-            rotateBone('spine', -0.1, 0, 0);
-            rotateBone('lowerSpine', -0.05, 0, 0);
-            rotateBone('upperSpine', -0.05, 0, 0);
-            rotateBone('leftArm', -0.6, 0, 0);
-            rotateBone('rightArm', -0.6, 0, 0);
-            rotateBone('leftUpLeg', -0.1, 0, 0);
-            rotateBone('rightUpLeg', -0.1, 0, 0);
+            // Animated attack: swing weapon based on attack progress
+            const totalTime = this.isAttacking ? CONFIG.ATTACK_DURATION || 0.4 : 0.5;
+            const elapsed = totalTime - (this.isAttacking ? this.attackTimer : this.activeSkillTimer);
+            const t = Math.min(1, Math.max(0, elapsed / totalTime));
+
+            if (this.classType === 'warrior') {
+                // Sword swing: wind up (0-0.3), slash (0.3-0.7), follow through (0.7-1.0)
+                if (t < 0.3) {
+                    // Wind up: raise sword arm back
+                    const p = t / 0.3;
+                    rotateBone('spine', -0.1 * p, 0.2 * p, 0);
+                    rotateBone('upperSpine', 0, 0.15 * p, 0);
+                    rotateBone('rightArm', -1.2 * p, 0, 0.4 * p);
+                    rotateBone('rightForeArm', -0.5 * p, 0, 0);
+                    rotateBone('leftArm', -0.3 * p, 0, -0.2 * p);
+                    rotateBone('leftUpLeg', -0.15 * p, 0, 0);
+                    rotateBone('rightUpLeg', 0.1 * p, 0, 0);
+                } else if (t < 0.7) {
+                    // Slash forward: swing arm down
+                    const p = (t - 0.3) / 0.4;
+                    rotateBone('spine', -0.1 + 0.2 * p, 0.2 - 0.5 * p, 0);
+                    rotateBone('upperSpine', 0, 0.15 - 0.35 * p, 0);
+                    rotateBone('rightArm', -1.2 + 1.8 * p, 0, 0.4 - 0.8 * p);
+                    rotateBone('rightForeArm', -0.5 + 0.3 * p, 0, 0);
+                    rotateBone('leftArm', -0.3, 0, -0.2 + 0.1 * p);
+                    rotateBone('leftUpLeg', -0.15, 0, 0);
+                    rotateBone('rightUpLeg', 0.1 - 0.2 * p, 0, 0);
+                } else {
+                    // Follow through: arms settle
+                    const p = (t - 0.7) / 0.3;
+                    rotateBone('spine', 0.1 * (1 - p), -0.3 * (1 - p), 0);
+                    rotateBone('upperSpine', 0, -0.2 * (1 - p), 0);
+                    rotateBone('rightArm', 0.6 * (1 - p), 0, -0.4 * (1 - p));
+                    rotateBone('rightForeArm', -0.2 * (1 - p), 0, 0);
+                    rotateBone('leftArm', -0.3 * (1 - p), 0, -0.1 * (1 - p));
+                }
+            } else {
+                // Mage: staff cast - raise staff overhead (0-0.4), thrust forward (0.4-0.7), settle (0.7-1.0)
+                if (t < 0.4) {
+                    const p = t / 0.4;
+                    rotateBone('spine', -0.15 * p, 0, 0);
+                    rotateBone('upperSpine', -0.1 * p, 0, 0);
+                    rotateBone('rightArm', -1.5 * p, 0, 0.3 * p);
+                    rotateBone('rightForeArm', -0.8 * p, 0, 0);
+                    rotateBone('leftArm', -0.8 * p, 0, -0.2 * p);
+                    rotateBone('leftForeArm', -0.4 * p, 0, 0);
+                } else if (t < 0.7) {
+                    const p = (t - 0.4) / 0.3;
+                    rotateBone('spine', -0.15 + 0.3 * p, 0, 0);
+                    rotateBone('upperSpine', -0.1 + 0.2 * p, 0, 0);
+                    rotateBone('rightArm', -1.5 + 2.0 * p, 0, 0.3 - 0.3 * p);
+                    rotateBone('rightForeArm', -0.8 + 0.6 * p, 0, 0);
+                    rotateBone('leftArm', -0.8 + 0.6 * p, 0, -0.2 + 0.1 * p);
+                    rotateBone('leftForeArm', -0.4 + 0.2 * p, 0, 0);
+                } else {
+                    const p = (t - 0.7) / 0.3;
+                    rotateBone('spine', 0.15 * (1 - p), 0, 0);
+                    rotateBone('upperSpine', 0.1 * (1 - p), 0, 0);
+                    rotateBone('rightArm', 0.5 * (1 - p), 0, 0);
+                    rotateBone('rightForeArm', -0.2 * (1 - p), 0, 0);
+                    rotateBone('leftArm', -0.2 * (1 - p), 0, -0.1 * (1 - p));
+                }
+            }
         } else if (this.isMoving) {
             // --- Walk cycle ---
             this.walkCycle += dt * 8; // cycle speed

@@ -64,11 +64,16 @@ export class EffectManager {
     _createSprite(texKey, size = 2, color = 0xffffff, opacity = 1) {
         const tex = this._getTex(texKey);
         if (!tex) return null;
+        // Use premultiplied alpha + alphaTest to eliminate square borders
+        // from AI-generated textures with semi-transparent edge pixels
+        tex.premultiplyAlpha = true;
+        tex.needsUpdate = true;
         const mat = new THREE.SpriteMaterial({
             map: tex,
             color,
             transparent: true,
             opacity,
+            alphaTest: 0.08,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
         });
