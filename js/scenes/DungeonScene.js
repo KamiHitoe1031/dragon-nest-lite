@@ -38,6 +38,15 @@ export class DungeonScene {
         this.game.ui.showHUD();
         this.game.isPaused = false;
         this.currentRoomIndex = 0;
+
+        // BGM based on dungeon theme
+        const bgmMap = {
+            'forest_cave': 'bgm_dungeon_forest',
+            'ruins': 'bgm_dungeon_ruins',
+            'boss_lair': 'bgm_boss'
+        };
+        this.dungeonBGM = bgmMap[this.dungeonData.theme] || 'bgm_dungeon_forest';
+        this.game.audio.playBGM(this.dungeonBGM);
         this.isComplete = false;
         this.startTime = Date.now();
         this.enemies = [];
@@ -244,10 +253,11 @@ export class DungeonScene {
             }
         }
 
-        // Boss HP bar
+        // Boss HP bar + boss BGM
         const boss = this.enemies.find(e => e.isBoss);
         if (boss) {
             this.game.ui.showBossHP(boss.name, boss.hp, boss.maxHP);
+            this.game.audio.playBGM('bgm_boss');
         } else {
             this.game.ui.hideBossHP();
         }
@@ -507,7 +517,7 @@ export class DungeonScene {
                 time: elapsed,
                 spGained: spReward,
                 goldGained: 0, // tracked separately through enemies
-                isFirstClear: !player.dungeonsCleared[dungeonKey].cleared
+                isFirstClear: player.dungeonsCleared[dungeonKey].clearCount === 1
             });
         }, 1500);
 

@@ -17,6 +17,7 @@ export class TownScene {
         this.game.ui.hideDungeonInfo();
         this.game.ui.hideBossHP();
         this.game.isPaused = false;
+        this.game.audio.playBGM('bgm_town');
 
         // Create town environment
         this.townGroup = new THREE.Group();
@@ -90,6 +91,13 @@ export class TownScene {
         if (!localStorage.getItem('dn_controls_shown')) {
             localStorage.setItem('dn_controls_shown', '1');
             this.game.ui.showControlsHint();
+        }
+
+        // Hint: visit Skill Master after Dungeon 1 first clear for specialization
+        if (!this.game.player.specialization && this.game.player.dungeonsCleared['1'].cleared) {
+            setTimeout(() => {
+                this.game.ui.showCenterMessage('Talk to the Skill Master to choose your path!', 3000);
+            }, 1000);
         }
     }
 

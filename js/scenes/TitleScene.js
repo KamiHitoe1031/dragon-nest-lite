@@ -10,6 +10,7 @@ export class TitleScene {
 
     async enter() {
         this.game.ui.hideHUD();
+        this.game.audio.playBGM('bgm_title');
 
         // 3D background
         this.titleGroup = new THREE.Group();
