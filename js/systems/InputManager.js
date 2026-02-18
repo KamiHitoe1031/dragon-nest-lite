@@ -15,6 +15,10 @@ export class InputManager {
 
     _bindEvents() {
         window.addEventListener('keydown', (e) => {
+            // Prevent browser defaults for game keys
+            if (e.code === 'Tab' || e.code === 'Space') {
+                e.preventDefault();
+            }
             if (!this.keys[e.code]) {
                 this.justPressed[e.code] = true;
             }

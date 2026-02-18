@@ -74,12 +74,12 @@ export class TitleScene {
                     <h2>Choose Your Class</h2>
                     <div id="char-options">
                         <div class="char-option" data-class="warrior">
-                            <div class="char-icon warrior-icon"></div>
+                            <div class="char-icon"><img src="assets/ui/chara_mia.png" alt="Warrior" onerror="this.style.display='none'"></div>
                             <h3>Warrior</h3>
                             <p>Melee fighter. Swords and brute strength.</p>
                         </div>
                         <div class="char-option" data-class="sorceress">
-                            <div class="char-icon mage-icon"></div>
+                            <div class="char-icon"><img src="assets/ui/chara_haru.png" alt="Sorceress" onerror="this.style.display='none'"></div>
                             <h3>Sorceress</h3>
                             <p>Magic user. Fire, ice, and gravity.</p>
                         </div>

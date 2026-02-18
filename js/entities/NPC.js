@@ -91,6 +91,13 @@ export class NPC {
         const dist = MathUtils.distanceXZ(this.position, this.game.player.position);
         const inRange = dist <= this.interactionRange;
 
+        // Track nearest NPC for E-key conflict resolution
+        if (inRange) {
+            this.game.nearbyNPC = this;
+        } else if (this.game.nearbyNPC === this) {
+            this.game.nearbyNPC = null;
+        }
+
         if (this.interactIcon) {
             this.interactIcon.visible = inRange;
             // Bob animation

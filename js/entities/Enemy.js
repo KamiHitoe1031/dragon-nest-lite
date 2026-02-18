@@ -149,7 +149,7 @@ export class Enemy {
             this.stateTimer -= dt;
             // Move away from player
             const dir = this.position.clone().sub(player.position).normalize();
-            this.position.add(dir.multiplyScalar(this.speed * 0.01 * dt * this.slowMultiplier));
+            this.position.add(dir.multiplyScalar(this.speed * 0.1 * dt * this.slowMultiplier));
             this._faceDirection(dir.negate());
 
             if (this.stateTimer <= 0) {
@@ -297,7 +297,7 @@ export class Enemy {
     _moveToward(target, dt) {
         const dir = new THREE.Vector3().subVectors(target, this.position).normalize();
         dir.y = 0;
-        const moveSpeed = this.speed * 0.01 * this.slowMultiplier;
+        const moveSpeed = this.speed * 0.1 * this.slowMultiplier;
         this.position.add(dir.multiplyScalar(moveSpeed * dt));
         this._faceTarget(target);
     }

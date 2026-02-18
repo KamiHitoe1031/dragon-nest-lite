@@ -544,6 +544,80 @@ export class ModelLoader {
                 group.add(doorFrame);
                 break;
             }
+            case 'torch': {
+                // Wall torch: pole + flame
+                const pole = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.04 * scale, 0.04 * scale, 0.6 * scale),
+                    new THREE.MeshLambertMaterial({ color: 0x553311 })
+                );
+                pole.position.y = 1.5 * scale;
+                group.add(pole);
+                const flame = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.12 * scale, 6, 6),
+                    new THREE.MeshBasicMaterial({ color: 0xffaa33 })
+                );
+                flame.position.y = 1.9 * scale;
+                group.add(flame);
+                const torchLight = new THREE.PointLight(0xffaa33, 0.8, 8);
+                torchLight.position.y = 1.9 * scale;
+                group.add(torchLight);
+                break;
+            }
+            case 'rubble': {
+                // Pile of broken stones
+                for (let i = 0; i < 4; i++) {
+                    const piece = new THREE.Mesh(
+                        new THREE.DodecahedronGeometry(0.25 * scale * (0.5 + Math.random() * 0.5), 0),
+                        new THREE.MeshLambertMaterial({ color: 0x776655 })
+                    );
+                    piece.position.set(
+                        (Math.random() - 0.5) * 0.6 * scale,
+                        0.15 * scale,
+                        (Math.random() - 0.5) * 0.6 * scale
+                    );
+                    piece.rotation.set(Math.random(), Math.random(), Math.random());
+                    group.add(piece);
+                }
+                break;
+            }
+            case 'magic_circle': {
+                // Glowing ring on the floor
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.6 * scale, 0.8 * scale, 32),
+                    new THREE.MeshBasicMaterial({ color: 0x6644cc, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+                );
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = 0.02;
+                group.add(ring);
+                const innerRing = new THREE.Mesh(
+                    new THREE.RingGeometry(0.2 * scale, 0.3 * scale, 16),
+                    new THREE.MeshBasicMaterial({ color: 0x8866ee, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
+                );
+                innerRing.rotation.x = -Math.PI / 2;
+                innerRing.position.y = 0.02;
+                group.add(innerRing);
+                const mcLight = new THREE.PointLight(0x6644cc, 0.5, 5);
+                mcLight.position.y = 0.5;
+                group.add(mcLight);
+                break;
+            }
+            case 'mural': {
+                // Flat decorated wall panel
+                const panel = new THREE.Mesh(
+                    new THREE.PlaneGeometry(2 * scale, 1.5 * scale),
+                    new THREE.MeshLambertMaterial({ color: 0x887766 })
+                );
+                panel.position.y = 1.5 * scale;
+                group.add(panel);
+                // Decorative inner frame
+                const frame = new THREE.Mesh(
+                    new THREE.PlaneGeometry(1.6 * scale, 1.1 * scale),
+                    new THREE.MeshLambertMaterial({ color: 0x665544 })
+                );
+                frame.position.set(0, 1.5 * scale, 0.01);
+                group.add(frame);
+                break;
+            }
             default: {
                 const box = new THREE.Mesh(
                     new THREE.BoxGeometry(scale, scale, scale),

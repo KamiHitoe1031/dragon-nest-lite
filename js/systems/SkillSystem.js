@@ -10,6 +10,16 @@ export class SkillSystem {
         this.equipSlotIndex = -1;
     }
 
+    /**
+     * Resolve skill icon name to asset path.
+     * Strips class-specialization prefixes (sm_, mc_, el_, fu_) to match actual filenames.
+     */
+    static getIconPath(iconName) {
+        if (!iconName) return '';
+        const stripped = iconName.replace(/^icon_(sm|mc|el|fu)_/, 'icon_');
+        return `assets/ui/${stripped}.png`;
+    }
+
     open() {
         this.isOpen = true;
         this.game.isPaused = true;
@@ -270,9 +280,10 @@ export class SkillSystem {
             el.classList.add('equipable');
         }
 
+        const iconPath = SkillSystem.getIconPath(skill.icon);
         el.innerHTML = `
-            <div class="st-skill-icon" title="${skill.name}">
-                ${isUltimate ? '&#9733;' : ''}
+            <div class="st-skill-icon" title="${skill.name}" style="${iconPath ? `background-image:url('${iconPath}');background-size:cover;background-position:center;` : ''}">
+                ${isUltimate && !iconPath ? '&#9733;' : ''}
                 ${isEquipped ? '<span class="equip-badge">E</span>' : ''}
             </div>
             <div class="st-skill-info">
@@ -345,7 +356,7 @@ export class SkillSystem {
         }
 
         player.equippedSkills[slotIndex] = skill.id;
-        this.game.ui.setSkillSlotIcon(slotIndex, skill.name);
+        this.game.ui.setSkillSlotIcon(slotIndex, skill.name, SkillSystem.getIconPath(skill.icon));
         this._renderSkillTree();
     }
 
@@ -360,7 +371,7 @@ export class SkillSystem {
         }
 
         player.equippedSkills[this.equipSlotIndex] = skill.id;
-        this.game.ui.setSkillSlotIcon(this.equipSlotIndex, skill.name);
+        this.game.ui.setSkillSlotIcon(this.equipSlotIndex, skill.name, SkillSystem.getIconPath(skill.icon));
         this.game.audio.playSFX('sfx_equip');
         this.exitEquipMode();
     }

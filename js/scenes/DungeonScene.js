@@ -182,9 +182,22 @@ export class DungeonScene {
         ctx.fill();
     }
 
+    _disposeGroup(group) {
+        group.traverse(child => {
+            if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (child.material.map) child.material.map.dispose();
+                    child.material.dispose();
+                }
+            }
+        });
+    }
+
     _loadRoom(index) {
-        // Clear previous room
+        // Clear previous room and free GPU resources
         if (this.roomGroup) {
+            this._disposeGroup(this.roomGroup);
             this.dungeonGroup.remove(this.roomGroup);
         }
 
@@ -579,8 +592,9 @@ export class DungeonScene {
         this.minimap = null;
         this.minimapCtx = null;
 
-        // Remove dungeon group
+        // Remove dungeon group and free GPU resources
         if (this.dungeonGroup) {
+            this._disposeGroup(this.dungeonGroup);
             this.game.scene.remove(this.dungeonGroup);
             this.dungeonGroup = null;
         }

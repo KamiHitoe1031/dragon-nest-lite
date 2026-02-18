@@ -201,6 +201,17 @@ class Game {
         }
         await this.player.init();
         this.player.loadFromSave(saveData);
+
+        // Restore HUD skill slot icons
+        for (let i = 0; i < 4; i++) {
+            const skillId = this.player.equippedSkills[i];
+            if (skillId) {
+                const skillData = this.getSkillData(skillId);
+                if (skillData) {
+                    this.ui.setSkillSlotIcon(i, skillData.name, SkillSystem.getIconPath(skillData.icon));
+                }
+            }
+        }
     }
 
     saveGame() {

@@ -219,11 +219,18 @@ export class UIManager {
         }
     }
 
-    setSkillSlotIcon(slotIndex, skillName) {
+    setSkillSlotIcon(slotIndex, skillName, iconPath = '') {
         const slots = document.querySelectorAll('.skill-slot');
         const slot = slots[slotIndex];
         if (slot) {
             slot.setAttribute('data-skill-name', skillName || '');
+            if (iconPath) {
+                slot.style.backgroundImage = `url('${iconPath}')`;
+                slot.style.backgroundSize = 'cover';
+                slot.style.backgroundPosition = 'center';
+            } else {
+                slot.style.backgroundImage = '';
+            }
         }
     }
 

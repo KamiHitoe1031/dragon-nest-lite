@@ -370,15 +370,22 @@ canvas {
 }
 
 .char-icon {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     margin: 0 auto;
     border-radius: 50%;
     background: #333;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.warrior-icon { background: linear-gradient(135deg, #cc6633, #884422); }
-.mage-icon { background: linear-gradient(135deg, #6633cc, #442288); }
+.char-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
 /* ========== Dialog ========== */
 #dialog-panel {
