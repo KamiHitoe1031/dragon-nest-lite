@@ -42,7 +42,8 @@ export class Fighter extends Player {
             this.game.effects.hitSpark(enemy.position, 0xffaa44);
         }
 
-        // Slash arc effect
+        // SFX + Slash arc effect
+        this.game.audio.playSFX(this.comboStep === 1 ? 'sfx_sword_slash_01' : 'sfx_sword_slash_02');
         this.game.effects.slashArc(this.position, this.rotation, 0xffffff, 0.8 + this.comboStep * 0.2);
 
         // Reset combo after 2 hits
@@ -89,7 +90,8 @@ export class Fighter extends Player {
             this.game.effects.hitSpark(enemy.position, 0xff6600);
         }
 
-        // Heavy slash effect
+        // SFX + Heavy slash effect
+        this.game.audio.playSFX('sfx_sword_heavy');
         this.game.effects.heavySlash(this.position, this.rotation, 0xffaa44);
 
         if (this.mesh) {
@@ -102,6 +104,7 @@ export class Fighter extends Player {
 
     dodge() {
         super.dodge();
+        this.game.audio.playSFX('sfx_dodge_roll');
         // Ground impact at start position
         this.game.effects.groundImpact(this.position.clone(), 0xcc8844, 1);
     }
@@ -128,6 +131,9 @@ export class Fighter extends Player {
             skillData.aoeType || 'circle',
             skillData.aoeAngle || 360
         );
+
+        // SFX from skill data
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
 
         // Visual effects based on skill type
         this._playSkillEffect(skillId, skillData, range);

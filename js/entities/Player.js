@@ -307,6 +307,7 @@ export class Player {
 
         const finalDamage = Math.max(1, Math.floor(amount - this.getEffectiveDef() * 0.5));
         this.hp -= finalDamage;
+        this.game.audio.playSFX('sfx_player_hurt');
 
         // Invincibility frames
         this.isInvincible = true;
@@ -329,6 +330,7 @@ export class Player {
 
     die() {
         this.isDead = true;
+        this.game.audio.playSFX('sfx_player_death');
         this.game.onPlayerDeath();
     }
 
@@ -348,10 +350,12 @@ export class Player {
         if (type === 'potion_hp' && this.hp < this.maxHP) {
             this.inventory[type]--;
             this.heal(50);
+            this.game.audio.playSFX('sfx_potion_drink');
             this.game.ui.updatePotionCount('hp', this.inventory.potion_hp);
         } else if (type === 'potion_mp' && this.mp < this.maxMP) {
             this.inventory[type]--;
             this.mp = Math.min(this.maxMP, this.mp + 30);
+            this.game.audio.playSFX('sfx_potion_drink');
             this.game.ui.updatePotionCount('mp', this.inventory.potion_mp);
         }
     }
@@ -549,6 +553,7 @@ export class Player {
         this.hp = this.maxHP;
         this.mp = this.maxMP;
 
+        this.game.audio.playSFX('sfx_level_up');
         this.game.ui.showCenterMessage(`Level Up! Lv.${this.level}`, 2000);
 
         // Level up visual effect

@@ -233,6 +233,10 @@ export class Enemy {
         this.attackTimer = 1.0;
         this.currentAttackCooldown = pattern.cooldown;
 
+        // Boss attack SFX
+        const bossSfx = ['sfx_dragon_roar', 'sfx_dragon_breath', 'sfx_dragon_stomp'];
+        this.game.audio.playSFX(bossSfx[this.currentPatternIndex % bossSfx.length]);
+
         let hitEnemies;
         if (pattern.aoeType === 'cone') {
             hitEnemies = MathUtils.isInCone(
@@ -268,6 +272,10 @@ export class Enemy {
         this.isAttacking = true;
         this.attackTimer = 0.5;
         this.currentAttackCooldown = this.attackCooldown;
+
+        // Enemy-specific attack SFX
+        const sfxMap = { 'slime': 'sfx_slime_bounce', 'goblin': 'sfx_goblin_attack', 'skeleton': 'sfx_skeleton_rattle' };
+        this.game.audio.playSFX(sfxMap[this.id] || 'sfx_hit_flesh');
 
         const damage = this.atk * MathUtils.damageVariance();
         const dist = MathUtils.distanceXZ(this.position, player.position);
@@ -311,6 +319,8 @@ export class Enemy {
 
         const finalDamage = Math.max(1, Math.floor(amount - this.def * 0.3));
         this.hp -= finalDamage;
+
+        this.game.audio.playSFX(isCritical ? 'sfx_hit_critical' : 'sfx_enemy_hit');
 
         // Show damage number
         const screenPos = this.game.worldToScreen(this.position);
@@ -415,6 +425,7 @@ export class Enemy {
     die() {
         this.isDead = true;
         this.state = 'dead';
+        this.game.audio.playSFX('sfx_enemy_death');
 
         // Drop loot
         if (!this.lootDropped) {
@@ -422,6 +433,7 @@ export class Enemy {
             const gold = MathUtils.randomInt(this.goldDrop.min, this.goldDrop.max);
             this.game.player.gainGold(gold);
             this.game.player.gainExp(this.xpValue);
+            this.game.audio.playSFX('sfx_gold_pickup');
 
             // Show loot popup
             const screenPos = this.game.worldToScreen(this.position);

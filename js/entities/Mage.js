@@ -23,6 +23,8 @@ export class Mage extends Player {
         const level = this.getSkillLevel('s_magic_missile');
         const multiplier = level > 0 ? (0.4 + level * 0.16) : 0.6;
 
+        this.game.audio.playSFX('sfx_magic_cast');
+
         // Create projectile
         this._fireProjectile(
             this.getEffectiveMatk() * multiplier,
@@ -67,7 +69,8 @@ export class Mage extends Player {
             enemy.takeDamage(Math.floor(damage), isCrit);
         }
 
-        // Visual effect - use EffectManager
+        // SFX + Visual effect
+        this.game.audio.playSFX('sfx_dark_magic');
         this.game.effects.explosion(blastPos, 0x8844ff, 3);
     }
 
@@ -91,6 +94,7 @@ export class Mage extends Player {
             dir = this._getAttackDirection();
         }
 
+        this.game.audio.playSFX('sfx_skill_teleport');
         // Teleport start effect
         this.game.effects.groundImpact(this.position.clone(), 0x8844ff, 1.5);
 
@@ -160,6 +164,9 @@ export class Mage extends Player {
             skillData.aoeType || 'circle',
             skillData.aoeAngle || 360
         );
+
+        // SFX from skill data
+        if (skillData.sfx) this.game.audio.playSFX(skillData.sfx);
 
         // Visual effects based on skill type
         this._playSkillEffect(skillId, skillData, levelData, range);

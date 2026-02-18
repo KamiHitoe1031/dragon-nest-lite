@@ -302,6 +302,7 @@ export class SkillSystem {
             addBtn.onclick = (e) => {
                 e.stopPropagation();
                 if (player.learnSkill(skill.id)) {
+                    this.game.audio.playSFX('sfx_skill_learn');
                     this._renderSkillTree();
                 }
             };
@@ -360,6 +361,7 @@ export class SkillSystem {
 
         player.equippedSkills[this.equipSlotIndex] = skill.id;
         this.game.ui.setSkillSlotIcon(this.equipSlotIndex, skill.name);
+        this.game.audio.playSFX('sfx_equip');
         this.exitEquipMode();
     }
 

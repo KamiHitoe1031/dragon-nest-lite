@@ -257,6 +257,7 @@ export class DungeonScene {
         const boss = this.enemies.find(e => e.isBoss);
         if (boss) {
             this.game.ui.showBossHP(boss.name, boss.hp, boss.maxHP);
+            this.game.audio.playSFX('sfx_boss_intro');
             this.game.audio.playBGM('bgm_boss');
         } else {
             this.game.ui.hideBossHP();
@@ -437,6 +438,7 @@ export class DungeonScene {
     _onRoomCleared() {
         this.doorLocked = false;
         this._updateDoorColor();
+        this.game.audio.playSFX('sfx_door_open');
 
         // Show chest
         if (this.chestMesh) {
@@ -470,6 +472,7 @@ export class DungeonScene {
 
     _openChest() {
         this.chestOpened = true;
+        this.game.audio.playSFX('sfx_chest_open');
         const roomData = this.dungeonData.rooms[this.currentRoomIndex];
         if (roomData.chest && roomData.chest.rewards) {
             const rewards = roomData.chest.rewards;
@@ -521,6 +524,7 @@ export class DungeonScene {
             });
         }, 1500);
 
+        this.game.audio.playSFX('sfx_dungeon_clear');
         this.game.ui.showCenterMessage('Dungeon Cleared!', 1500);
     }
 
