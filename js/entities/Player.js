@@ -535,8 +535,9 @@ export class Player {
 
     gainExp(amount) {
         this.exp += amount;
-        const needed = CONFIG.EXP_PER_LEVEL[this.level] || 9999;
-        while (this.exp >= needed && this.level < CONFIG.EXP_PER_LEVEL.length) {
+        while (this.level < CONFIG.EXP_PER_LEVEL.length) {
+            const needed = CONFIG.EXP_PER_LEVEL[this.level] || 9999;
+            if (this.exp < needed) break;
             this.exp -= needed;
             this.levelUp();
         }

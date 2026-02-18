@@ -25,10 +25,22 @@ const ENVIRONMENT_MODELS = {
     'door':   { path: 'assets/models/env_door.glb',      targetHeight: 2.5 },
 };
 
+// Texture definitions for reuse
+const TEXTURE_DEFS = {
+    'grass':         'assets/textures/tex_grass.png',
+    'cobblestone':   'assets/textures/tex_cobblestone.png',
+    'dungeon_floor': 'assets/textures/tex_dungeon_floor.png',
+    'ruins_wall':    'assets/textures/tex_ruins_wall.png',
+    'bg_town_sky':   'assets/textures/bg_town_sky.png',
+    'bg_dungeon':    'assets/textures/bg_dungeon.png',
+};
+
 export class ModelLoader {
     // Shared cache: key -> { scene, animations, naturalHeight }
     static _cache = new Map();
+    static _textureCache = new Map();
     static _loader = null;
+    static _textureLoader = null;
     static _preloaded = false;
 
     constructor() {
@@ -115,8 +127,41 @@ export class ModelLoader {
             await Promise.all(batch.map(loadOne));
         }
 
+        // Preload textures
+        if (!ModelLoader._textureLoader) {
+            ModelLoader._textureLoader = new THREE.TextureLoader();
+        }
+        for (const [key, texPath] of Object.entries(TEXTURE_DEFS)) {
+            try {
+                const tex = await new Promise((resolve, reject) => {
+                    ModelLoader._textureLoader.load(texPath, resolve, undefined, reject);
+                });
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.colorSpace = THREE.SRGBColorSpace;
+                ModelLoader._textureCache.set(key, tex);
+            } catch (e) {
+                console.warn(`[ModelLoader] Failed to load texture: ${texPath}`);
+            }
+        }
+
         ModelLoader._preloaded = true;
-        console.log(`[ModelLoader] Preload complete: ${ModelLoader._cache.size}/${total} models loaded`);
+        console.log(`[ModelLoader] Preload complete: ${ModelLoader._cache.size}/${total} models, ${ModelLoader._textureCache.size} textures loaded`);
+    }
+
+    /**
+     * Get a preloaded texture by key. Returns texture or null.
+     * @param {string} key - grass, cobblestone, dungeon_floor, ruins_wall, bg_town_sky, bg_dungeon
+     * @param {number} repeatX - UV repeat X (default 1)
+     * @param {number} repeatY - UV repeat Y (default 1)
+     */
+    static getTexture(key, repeatX = 1, repeatY = 1) {
+        const tex = ModelLoader._textureCache.get(key);
+        if (!tex) return null;
+        const clone = tex.clone();
+        clone.needsUpdate = true;
+        clone.repeat.set(repeatX, repeatY);
+        return clone;
     }
 
     /**

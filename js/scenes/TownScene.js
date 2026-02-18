@@ -18,28 +18,40 @@ export class TownScene {
         this.game.ui.hideBossHP();
         this.game.isPaused = false;
         this.game.audio.playBGM('bgm_town');
+        this.game.audio.playAmbient('sfx_ambient_town');
 
         // Create town environment
         this.townGroup = new THREE.Group();
 
-        // Ground
+        // Ground with grass texture
+        const grassTex = ModelLoader.getTexture('grass', 8, 8);
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(CONFIG.TOWN_SIZE.width, CONFIG.TOWN_SIZE.depth),
-            new THREE.MeshLambertMaterial({ color: CONFIG.PLACEHOLDER.GROUND_TOWN })
+            new THREE.MeshLambertMaterial(grassTex ? { map: grassTex } : { color: CONFIG.PLACEHOLDER.GROUND_TOWN })
         );
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         this.townGroup.add(ground);
 
-        // Cobblestone center
+        // Cobblestone center with texture
+        const cobbleTex = ModelLoader.getTexture('cobblestone', 4, 4);
         const center = new THREE.Mesh(
             new THREE.PlaneGeometry(20, 20),
-            new THREE.MeshLambertMaterial({ color: 0x887766 })
+            new THREE.MeshLambertMaterial(cobbleTex ? { map: cobbleTex } : { color: 0x887766 })
         );
         center.rotation.x = -Math.PI / 2;
         center.position.y = 0.01;
         center.receiveShadow = true;
         this.townGroup.add(center);
+
+        // Sky background
+        const skyTex = ModelLoader.getTexture('bg_town_sky');
+        if (skyTex) {
+            skyTex.repeat.set(1, 1);
+            this.game.scene.background = skyTex;
+        } else {
+            this.game.scene.background = new THREE.Color(0x88bbdd);
+        }
 
         // Lighting
         const ambient = new THREE.AmbientLight(0x667788, 1.2);
@@ -275,5 +287,11 @@ export class TownScene {
             this.dungeonSelectUI.remove();
             this.dungeonSelectUI = null;
         }
+
+        // Stop ambient sounds
+        this.game.audio.stopAmbient();
+
+        // Reset background
+        this.game.scene.background = new THREE.Color(0x1a1a2e);
     }
 }

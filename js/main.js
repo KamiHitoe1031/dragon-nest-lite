@@ -193,13 +193,13 @@ class Game {
         await this.player.init();
     }
 
-    loadSave(saveData) {
+    async loadSave(saveData) {
         if (saveData.selectedClass === 'warrior') {
             this.player = new Fighter(this);
         } else {
             this.player = new Mage(this);
         }
-        this.player.init();
+        await this.player.init();
         this.player.loadFromSave(saveData);
     }
 

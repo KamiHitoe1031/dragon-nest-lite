@@ -20,7 +20,16 @@ export class EffectManager {
 
             if (effect.elapsed >= effect.duration) {
                 if (effect.mesh) {
-                    this.game.scene.remove(effect.mesh);
+                    // Remove from parent (works for both scene children and target.mesh children)
+                    if (effect.mesh.parent) {
+                        effect.mesh.parent.remove(effect.mesh);
+                    } else {
+                        this.game.scene.remove(effect.mesh);
+                    }
+                    // Clean up tracked extra lights
+                    if (effect._extraLight) {
+                        this.game.scene.remove(effect._extraLight);
+                    }
                     effect.mesh.traverse(child => {
                         if (child.geometry) child.geometry.dispose();
                         if (child.material) {
@@ -223,8 +232,9 @@ export class EffectManager {
         light.position.copy(position);
         this.game.scene.add(light);
 
-        this.effects.push({
+        const effect = {
             mesh, elapsed: 0, duration: 0.4,
+            _extraLight: light,
             update: (dt, e) => {
                 const t = e.elapsed / 0.4;
                 mesh.scale.setScalar(radius * t * 3);
@@ -233,9 +243,11 @@ export class EffectManager {
 
                 if (t >= 1) {
                     this.game.scene.remove(light);
+                    e._extraLight = null;
                 }
             }
-        });
+        };
+        this.effects.push(effect);
 
         // Particles
         for (let i = 0; i < 12; i++) {
@@ -479,10 +491,33 @@ export class EffectManager {
 
     dispose() {
         for (const e of this.effects) {
-            if (e.mesh) this.game.scene.remove(e.mesh);
+            if (e.mesh) {
+                // Remove from parent (works for both scene children and target.mesh children)
+                if (e.mesh.parent) {
+                    e.mesh.parent.remove(e.mesh);
+                } else {
+                    this.game.scene.remove(e.mesh);
+                }
+                e.mesh.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            }
+            // Remove tracked extra lights
+            if (e._extraLight) {
+                this.game.scene.remove(e._extraLight);
+            }
         }
         for (const p of this.particles) {
             this.game.scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
         }
         this.effects = [];
         this.particles = [];

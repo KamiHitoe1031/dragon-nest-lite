@@ -11,6 +11,8 @@ export class AudioManager {
         this.voiceGain = null;
         this.sfxCache = new Map();
         this.currentBGM = '';
+        this.ambientElement = null;
+        this.currentAmbient = '';
         this.initialized = false;
     }
 
@@ -70,6 +72,29 @@ export class AudioManager {
             this.bgmElement.currentTime = 0;
         }
         this.currentBGM = '';
+    }
+
+    async playAmbient(name) {
+        if (this.currentAmbient === name) return;
+        this.stopAmbient();
+        this.currentAmbient = name;
+
+        try {
+            this.ambientElement = new Audio(`assets/audio/sfx/${name}.mp3`);
+            this.ambientElement.loop = true;
+            this.ambientElement.volume = CONFIG.SFX_VOLUME * 0.3; // Quieter than SFX
+            await this.ambientElement.play().catch(() => {});
+        } catch (e) {
+            // Ambient file not found
+        }
+    }
+
+    stopAmbient() {
+        if (this.ambientElement) {
+            this.ambientElement.pause();
+            this.ambientElement.currentTime = 0;
+        }
+        this.currentAmbient = '';
     }
 
     playSFX(name) {

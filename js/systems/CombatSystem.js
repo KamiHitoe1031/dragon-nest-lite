@@ -6,6 +6,7 @@ import { MathUtils } from '../utils/MathUtils.js';
 export class CombatSystem {
     constructor(game) {
         this.game = game;
+        this.activeDOTs = [];
     }
 
     calculateDamage(attackerStat, skillMultiplier, defenderDef) {
@@ -62,15 +63,36 @@ export class CombatSystem {
     }
 
     applyBurnDOT(enemy, matkPerTick, duration, tickInterval = 1) {
-        let elapsed = 0;
-        const timer = setInterval(() => {
-            elapsed += tickInterval;
-            if (elapsed > duration || enemy.isDead) {
-                clearInterval(timer);
-                return;
+        this.activeDOTs.push({
+            enemy,
+            damagePerTick: matkPerTick,
+            duration,
+            tickInterval,
+            elapsed: 0,
+            tickTimer: 0
+        });
+    }
+
+    updateDOTs(dt) {
+        for (let i = this.activeDOTs.length - 1; i >= 0; i--) {
+            const dot = this.activeDOTs[i];
+            dot.elapsed += dt;
+            dot.tickTimer += dt;
+
+            if (dot.elapsed >= dot.duration || dot.enemy.isDead) {
+                this.activeDOTs.splice(i, 1);
+                continue;
             }
-            const damage = Math.floor(matkPerTick * MathUtils.damageVariance());
-            enemy.takeDamage(damage, false);
-        }, tickInterval * 1000);
+
+            if (dot.tickTimer >= dot.tickInterval) {
+                dot.tickTimer -= dot.tickInterval;
+                const damage = Math.floor(dot.damagePerTick * MathUtils.damageVariance());
+                dot.enemy.takeDamage(damage, false);
+            }
+        }
+    }
+
+    clearDOTs() {
+        this.activeDOTs = [];
     }
 }

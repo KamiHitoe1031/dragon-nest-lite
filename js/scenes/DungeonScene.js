@@ -47,9 +47,26 @@ export class DungeonScene {
         };
         this.dungeonBGM = bgmMap[this.dungeonData.theme] || 'bgm_dungeon_forest';
         this.game.audio.playBGM(this.dungeonBGM);
+
+        // Ambient SFX based on dungeon theme
+        const ambientMap = {
+            'forest_cave': 'sfx_ambient_cave',
+            'ruins': 'sfx_ambient_ruins',
+            'boss_lair': 'sfx_ambient_ruins'
+        };
+        this.game.audio.playAmbient(ambientMap[this.dungeonData.theme] || 'sfx_ambient_cave');
         this.isComplete = false;
         this.startTime = Date.now();
         this.enemies = [];
+
+        // Set dungeon background
+        const bgTex = ModelLoader.getTexture('bg_dungeon');
+        if (bgTex) {
+            bgTex.repeat.set(1, 1);
+            this.game.scene.background = bgTex;
+        } else {
+            this.game.scene.background = new THREE.Color(0x1a1a2e);
+        }
 
         // Create dungeon container
         this.dungeonGroup = new THREE.Group();
@@ -191,16 +208,19 @@ export class DungeonScene {
         const halfD = roomData.size.depth / 2;
         const offsetPos = (pos) => [pos[0] - halfW, pos[1], pos[2] - halfD];
 
-        // Floor
+        // Floor with dungeon texture
+        const floorRepeatX = Math.ceil(roomData.size.width / 4);
+        const floorRepeatZ = Math.ceil(roomData.size.depth / 4);
+        const floorTex = ModelLoader.getTexture('dungeon_floor', floorRepeatX, floorRepeatZ);
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(roomData.size.width, roomData.size.depth),
-            new THREE.MeshLambertMaterial({ color: CONFIG.PLACEHOLDER.GROUND_DUNGEON })
+            new THREE.MeshLambertMaterial(floorTex ? { map: floorTex } : { color: CONFIG.PLACEHOLDER.GROUND_DUNGEON })
         );
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         this.roomGroup.add(floor);
 
-        // Walls
+        // Walls with texture
         this._createWalls(roomData.size);
 
         // Props
@@ -274,12 +294,16 @@ export class DungeonScene {
     _createWalls(size) {
         const wallHeight = 3;
         const wallThickness = 0.5;
+        const wallTexN = ModelLoader.getTexture('ruins_wall', Math.ceil(size.width / 3), 1);
+        const wallTexS = ModelLoader.getTexture('ruins_wall', Math.ceil(size.width / 3), 1);
+        const wallTexE = ModelLoader.getTexture('ruins_wall', Math.ceil(size.depth / 3), 1);
+        const wallTexW = ModelLoader.getTexture('ruins_wall', Math.ceil(size.depth / 3), 1);
         const wallMat = new THREE.MeshLambertMaterial({ color: CONFIG.PLACEHOLDER.WALL });
 
         // North wall
         const northWall = new THREE.Mesh(
             new THREE.BoxGeometry(size.width, wallHeight, wallThickness),
-            wallMat
+            wallTexN ? new THREE.MeshLambertMaterial({ map: wallTexN }) : wallMat
         );
         northWall.position.set(0, wallHeight / 2, -size.depth / 2);
         this.roomGroup.add(northWall);
@@ -287,7 +311,7 @@ export class DungeonScene {
         // South wall
         const southWall = new THREE.Mesh(
             new THREE.BoxGeometry(size.width, wallHeight, wallThickness),
-            wallMat
+            wallTexS ? new THREE.MeshLambertMaterial({ map: wallTexS }) : wallMat
         );
         southWall.position.set(0, wallHeight / 2, size.depth / 2);
         this.roomGroup.add(southWall);
@@ -295,7 +319,7 @@ export class DungeonScene {
         // East wall
         const eastWall = new THREE.Mesh(
             new THREE.BoxGeometry(wallThickness, wallHeight, size.depth),
-            wallMat
+            wallTexE ? new THREE.MeshLambertMaterial({ map: wallTexE }) : wallMat
         );
         eastWall.position.set(size.width / 2, wallHeight / 2, 0);
         this.roomGroup.add(eastWall);
@@ -303,7 +327,7 @@ export class DungeonScene {
         // West wall
         const westWall = new THREE.Mesh(
             new THREE.BoxGeometry(wallThickness, wallHeight, size.depth),
-            wallMat
+            wallTexW ? new THREE.MeshLambertMaterial({ map: wallTexW }) : wallMat
         );
         westWall.position.set(-size.width / 2, wallHeight / 2, 0);
         this.roomGroup.add(westWall);
@@ -352,6 +376,9 @@ export class DungeonScene {
 
         // Update projectiles
         this.game.updateProjectiles(dt);
+
+        // Update DOTs (burn, etc.)
+        this.game.combatSystem.updateDOTs(dt);
 
         // Skill slot cooldown display
         for (let i = 0; i < 4; i++) {
@@ -540,6 +567,9 @@ export class DungeonScene {
         // Clean up projectiles
         this.game.clearProjectiles();
 
+        // Clean up DOTs
+        this.game.combatSystem.clearDOTs();
+
         // Clean up effects
         this.game.effects.dispose();
 
@@ -558,5 +588,11 @@ export class DungeonScene {
         this.roomGroup = null;
         this.doorMesh = null;
         this.chestMesh = null;
+
+        // Stop ambient sounds
+        this.game.audio.stopAmbient();
+
+        // Reset background
+        this.game.scene.background = new THREE.Color(0x1a1a2e);
     }
 }

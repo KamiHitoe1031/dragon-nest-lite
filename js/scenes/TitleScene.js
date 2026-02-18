@@ -93,8 +93,8 @@ export class TitleScene {
         const saveData = localStorage.getItem('dragon_nest_lite_save');
         if (saveData) {
             document.getElementById('btn-continue').style.display = 'block';
-            document.getElementById('btn-continue').addEventListener('click', () => {
-                this.game.loadSave(JSON.parse(saveData));
+            document.getElementById('btn-continue').addEventListener('click', async () => {
+                await this.game.loadSave(JSON.parse(saveData));
                 this.game.sceneManager.switchTo('town');
             });
         }
@@ -105,9 +105,9 @@ export class TitleScene {
         });
 
         document.querySelectorAll('.char-option').forEach(option => {
-            option.addEventListener('click', () => {
+            option.addEventListener('click', async () => {
                 const selectedClass = option.dataset.class;
-                this.game.startNewGame(selectedClass);
+                await this.game.startNewGame(selectedClass);
                 this.game.sceneManager.switchTo('town');
             });
         });
