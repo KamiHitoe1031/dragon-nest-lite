@@ -22,10 +22,10 @@ Dragon Nestの爽快な3Dアクションを簡略化し、**ブラウザで動�
 
 | 用途 | 技術 |
 |------|------|
-| **3D描画** | Three.js（CDN）+ Cannon-es（物理） |
+| **3D描画** | Three.js（CDN）+ カスタム衝突判定 |
 | **3Dモデル** | Meshy API（生成 + リギング + アニメーション） |
 | **2D UI/テクスチャ** | Gemini（gemini-3-pro-image-preview） |
-| **音声・SE** | ElevenLabs API（ボイス）+ 効果音ラボ/魔王魂（SE/BGM） |
+| **音声・SE** | ElevenLabs API（ボイス・SE・BGMすべて） |
 | **言語** | JavaScript（ES6+） |
 | **データ** | JSON + localStorage |
 
@@ -188,7 +188,7 @@ refined_id = meshy.refine(task_id)
 | **プレイヤー** | ファイター掛け声 × 3パターン | 攻撃時 |
 | **プレイヤー** | メイジ詠唱 × 3パターン | スキル使用時 |
 
-**SE/BGM**は無料素材（効果音ラボ + 魔王魂）を使用。ElevenLabsはボイスのみ。
+**SE/BGMもElevenLabs Sound Generation APIで生成**。`tools/generate_sounds.py`（SE）、`tools/generate_bgm.py`（BGM）で一括生成。
 
 ---
 
@@ -470,9 +470,9 @@ Dragon Nest最大の魅力はスキルツリーの分岐。ここだけしっか
 
 | # | テーマ | 部屋数 | 雑魚 | ボス | BGM |
 |---|--------|--------|------|------|-----|
-| 1 | 森の洞窟 | 3部屋 | Slime×5, Goblin×3 | なし（最後に大量スポーン） | 魔王魂：ダンジョン系 |
-| 2 | 遺跡地下 | 4部屋 | Goblin×4, Skeleton×4 | なし（中ボス的Skeleton隊長） | 魔王魂：緊張系 |
-| 3 | ドラゴンの巣 | 3部屋+ボス部屋 | 全種混合 | Dragon | 魔王魂：ボス戦 |
+| 1 | 森の洞窟 | 3部屋 | Slime×5, Goblin×3 | なし（最後に大量スポーン） | AI生成：ダンジョン系 |
+| 2 | 遺跡地下 | 4部屋 | Goblin×4, Skeleton×4 | なし（中ボス的Skeleton隊長） | AI生成：緊張系 |
+| 3 | ドラゴンの巣 | 3部屋+ボス部屋 | 全種混合 | Dragon | AI生成：ボス戦 |
 
 ### 5-2. ダンジョンの進行
 
@@ -522,12 +522,12 @@ Dragon Nest最大の魅力はスキルツリーの分岐。ここだけしっか
 
 | カテゴリ | ソース | 実装 |
 |---------|--------|------|
-| **BGM** | 魔王魂（クレジット必須・無料） | Howler.jsでループ再生 |
-| **攻撃SE** | 効果音ラボ（クレジット不要・無料） | ピッチ±5%ランダム変動 |
-| **スキルSE** | 効果音ラボ | スキル発動と同期 |
-| **UI SE** | 効果音ラボ | ボタンクリック、レベルアップ |
-| **NPC声** | ElevenLabs API | 事前生成→MP3配置 |
-| **プレイヤー声** | ElevenLabs API | 攻撃掛け声3バリエーション |
+| **BGM** | ElevenLabs Sound Generation API | HTML5 Audioでループ再生 |
+| **攻撃SE** | ElevenLabs Sound Generation API | ピッチ±5%ランダム変動 |
+| **スキルSE** | ElevenLabs Sound Generation API | スキル発動と同期 |
+| **UI SE** | ElevenLabs Sound Generation API | ボタンクリック、レベルアップ |
+| **NPC声** | ElevenLabs TTS API | 事前生成→MP3配置 |
+| **プレイヤー声** | ElevenLabs TTS API | 攻撃掛け声3バリエーション |
 
 ### 6-2. エフェクト
 

@@ -131,19 +131,20 @@
 | ソーサレス詠唱×3 | `voice_mage_cast_01〜03.mp3` | 女性魔法使い |
 | ドラゴン咆哮 | `voice_dragon_roar.mp3` | モンスター |
 
-### BGM（魔王魂 → assets/audio/bgm/ ※クレジット必須）
+### BGM（ElevenLabs Sound Generation API生成 → assets/audio/bgm/）
 
-| 用途 | ファイル名 | 選定方向 |
-|------|-----------|---------|
+| 用途 | ファイル名 | 生成プロンプト方向 |
+|------|-----------|-----------------|
 | タイトル画面 | `bgm_title.mp3` | 壮大・ファンタジー系 |
 | タウン | `bgm_town.mp3` | 穏やか・日常系 |
 | ダンジョン1（森の洞窟） | `bgm_dungeon_forest.mp3` | 探索系・緊張感控えめ |
 | ダンジョン2（古代遺跡） | `bgm_dungeon_ruins.mp3` | 緊張系・ミステリアス |
 | ボス戦 | `bgm_boss.mp3` | 激しいバトル系 |
-| リザルト（勝利） | `bgm_result_win.mp3` | 達成感・ファンファーレ |
-| リザルト（敗北） | `bgm_result_lose.mp3` | 静か・リトライ促す |
+| リザルト | `bgm_result.mp3` | 達成感・ファンファーレ |
 
-### SE（効果音ラボ → assets/audio/sfx/ ※クレジット不要）
+※ `tools/generate_bgm.py` で一括生成。最大22秒ループ。
+
+### SE（ElevenLabs Sound Generation API生成 → assets/audio/sfx/）
 
 | 用途 | ファイル名 | 説明 |
 |------|-----------|------|

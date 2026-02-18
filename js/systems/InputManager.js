@@ -44,7 +44,7 @@ export class InputManager {
         window.addEventListener('mousemove', (e) => {
             this.mousePosition.x = e.clientX;
             this.mousePosition.y = e.clientY;
-            if (this.isPointerLocked) {
+            if (this.isPointerLocked || this.mouseButtons[2]) {
                 this.mouseDelta.x += e.movementX;
                 this.mouseDelta.y += e.movementY;
             }
