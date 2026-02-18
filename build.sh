@@ -27,6 +27,3 @@ cp assets/audio/sfx/*.mp3 dist/assets/audio/sfx/ 2>/dev/null || true
 
 echo "Build complete. Contents:"
 du -sh dist/
-
-# Deploy to Cloudflare Pages
-npx wrangler pages deploy dist --project-name=dragon-nest-lite
