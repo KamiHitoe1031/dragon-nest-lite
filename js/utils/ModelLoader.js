@@ -24,6 +24,10 @@ const ENVIRONMENT_MODELS = {
     'chest':  { path: 'assets/models/item_chest.glb',    targetHeight: 0.5 },
     'pillar': { path: 'assets/models/env_ruins_pillar.glb', targetHeight: 3.0 },
     'door':   { path: 'assets/models/env_door.glb',      targetHeight: 2.5 },
+    'rubble': { path: 'assets/models/env_rubble.glb',     targetHeight: 0.5 },
+    'magic_circle': { path: 'assets/models/env_magic_circle.glb', targetHeight: 0.1 },
+    'mural':  { path: 'assets/models/env_mural.glb',      targetHeight: 2.0 },
+    'torch':  { path: 'assets/models/env_torch.glb',      targetHeight: 1.5 },
 };
 
 // Texture definitions for reuse

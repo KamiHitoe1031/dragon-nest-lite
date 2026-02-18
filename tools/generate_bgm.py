@@ -68,8 +68,13 @@ BGM_TRACKS = [
         'duration': 22,
     },
     {
-        'name': 'bgm_result',
+        'name': 'bgm_result_win',
         'prompt': 'victory fanfare music, triumphant orchestral celebration theme, bright brass and strings, joyful and rewarding RPG clear screen music, moderate tempo, uplifting',
+        'duration': 15,
+    },
+    {
+        'name': 'bgm_result_lose',
+        'prompt': 'game over music, melancholic and somber orchestral theme, quiet strings and soft piano, reflective and sad, slow tempo, encouraging retry feeling, fantasy RPG defeat screen',
         'duration': 15,
     },
 ]

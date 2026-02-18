@@ -12,7 +12,7 @@ export class ResultScene {
         this.game.ui.hideHUD();
         this.game.ui.hideBossHP();
         this.game.ui.hideDungeonInfo();
-        this.game.audio.playBGM('bgm_result');
+        this.game.audio.playBGM('bgm_result_win');
 
         // Simple background
         this.bgGroup = new THREE.Group();

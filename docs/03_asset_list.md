@@ -140,7 +140,8 @@
 | ダンジョン1（森の洞窟） | `bgm_dungeon_forest.mp3` | 探索系・緊張感控えめ |
 | ダンジョン2（古代遺跡） | `bgm_dungeon_ruins.mp3` | 緊張系・ミステリアス |
 | ボス戦 | `bgm_boss.mp3` | 激しいバトル系 |
-| リザルト | `bgm_result.mp3` | 達成感・ファンファーレ |
+| リザルト（勝利） | `bgm_result_win.mp3` | 達成感・ファンファーレ |
+| リザルト（敗北） | `bgm_result_lose.mp3` | 静か・リトライ促す |
 
 ※ `tools/generate_bgm.py` で一括生成。最大22秒ループ。
 

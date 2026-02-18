@@ -424,6 +424,60 @@ MODELS: list[ModelDefinition] = [
         priority=2,
     ),
 
+    # ===== Dungeon Props (Text-to-3D, no rigging) =====
+    ModelDefinition(
+        name="env_rubble",
+        filename="env_rubble.glb",
+        category=ModelCategory.ENVIRONMENT,
+        method=GenerationMethod.TEXT_TO_3D,
+        target_polycount=500,
+        prompt=(
+            f"scattered stone rubble debris pile, {COMMON_STYLE}, "
+            f"broken stone chunks and dust, collapsed wall remains, "
+            f"fantasy RPG dungeon debris"
+        ),
+        priority=3,
+    ),
+    ModelDefinition(
+        name="env_magic_circle",
+        filename="env_magic_circle.glb",
+        category=ModelCategory.ENVIRONMENT,
+        method=GenerationMethod.TEXT_TO_3D,
+        target_polycount=500,
+        prompt=(
+            f"glowing magic circle on ground, {COMMON_STYLE}, "
+            f"flat circular arcane rune pattern, blue glow, "
+            f"fantasy RPG summoning circle, magical symbols"
+        ),
+        priority=3,
+    ),
+    ModelDefinition(
+        name="env_mural",
+        filename="env_mural.glb",
+        category=ModelCategory.ENVIRONMENT,
+        method=GenerationMethod.TEXT_TO_3D,
+        target_polycount=500,
+        prompt=(
+            f"ancient stone wall mural relief, {COMMON_STYLE}, "
+            f"flat rectangular stone slab with carved dragon imagery, "
+            f"faded paint, cracks, fantasy RPG dungeon decoration"
+        ),
+        priority=3,
+    ),
+    ModelDefinition(
+        name="env_torch",
+        filename="env_torch.glb",
+        category=ModelCategory.ENVIRONMENT,
+        method=GenerationMethod.TEXT_TO_3D,
+        target_polycount=500,
+        prompt=(
+            f"wall-mounted torch sconce, {COMMON_STYLE}, "
+            f"iron bracket holding wooden torch with flame, "
+            f"medieval fantasy RPG dungeon lighting"
+        ),
+        priority=3,
+    ),
+
     # ===== Items (Text-to-3D, no rigging) =====
     ModelDefinition(
         name="item_chest",

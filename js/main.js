@@ -517,6 +517,9 @@ class Game {
         }
         deathOverlay.style.display = 'flex';
 
+        // Play defeat BGM (falls back to bgm_result if bgm_result_lose not found)
+        this.audio.playBGM('bgm_result_lose');
+
         // Clean up effects
         this.effects.dispose();
 
